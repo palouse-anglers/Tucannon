@@ -4,13 +4,37 @@
 #'     DO NOT REMOVE.
 #' @import shiny
 #' @noRd
+#' 
+
+link_shiny <- tags$a(
+  shiny::icon("github"), "Shiny",
+  href = "https://github.com/rstudio/shiny",
+  target = "_blank"
+)
+link_posit <- tags$a(
+  shiny::icon("r-project"), "Posit",
+  href = "https://posit.co",
+  target = "_blank"
+)
+
+
 app_ui <- function(request) {
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
     # Your application UI logic
-    fluidPage(
-      h1("Tucannon")
+    bslib::page_navbar(
+      title = "My App",
+      bslib::nav_panel(title = "Map", p("First page content.")),
+      bslib::nav_panel(title = "Two", p("Second page content.")),
+      bslib::nav_panel("Three", p("Third page content.")),
+      bslib::nav_spacer(),
+      bslib::nav_menu(
+        title = "Links",
+        align = "right",
+        bslib::nav_item(link_shiny),
+        bslib::nav_item(link_posit)
+      )
     )
   )
 }
