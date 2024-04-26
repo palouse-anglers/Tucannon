@@ -6,6 +6,20 @@
 #' @noRd
 #' 
 
+library(bslib)
+
+# Highcharts --------------------------------------------------------------
+
+suppressWarnings(
+  suppressMessages(
+    source("../Tucannon/R/data_processing/powers/explore-powers.R")
+    )
+  )
+
+
+# Navbar links ------------------------------------------------------------
+
+
 link_shiny <- tags$a(
   shiny::icon("github"), "Shiny",
   href = "https://github.com/rstudio/shiny",
@@ -25,7 +39,22 @@ app_ui <- function(request) {
     # Your application UI logic
     bslib::page_navbar(
       title = "My App",
-      bslib::nav_panel(title = "Map", p("First page content.")),
+      bslib::nav_panel(
+        title = "Water Quality", 
+        bslib::navset_tab( 
+          bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
+                           card(
+                             fill = TRUE,
+                             full_screen = TRUE,
+                             style = "resize:both;",
+                             card_header("Plots that grow but don't shrink"),
+                             card_body(highchartOutput("do_plot"))
+                              ),
+          value = "do_tab"), #-------------- End DO Tab----------------------
+          bslib::nav_panel(title = "Temperature", p("Second tab content.")),
+          bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
+        )
+      ),
       bslib::nav_panel(title = "Two", p("Second page content.")),
       bslib::nav_panel("Three", p("Third page content.")),
       bslib::nav_spacer(),
