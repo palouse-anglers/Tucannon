@@ -81,8 +81,18 @@ app_ui <- function(request) {
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
         )
       ),
-      bslib::nav_panel(title = "Watersheds Map", leafletOutput("leafmap")),#---Nav Bar----
-      bslib::nav_panel("Three", p("Third page content.")),#------Nav Bar--------
+      bslib::nav_panel(title = "Watersheds Map", 
+                       layout_column_wrap(
+                       card(id = "leaflet_map",
+                         fill = TRUE,
+                         full_screen = TRUE,
+                         style = "resize:both;",
+                         card_header(textOutput("selectedHUC_name")),
+                         card_body(leafletOutput("leafmap"))
+                       ), #----- End leaflet map card-----
+                      value = "map_tab" ) #---- End layout_column_wrap map------
+                       ),#---Nav Bar----
+      bslib::nav_panel("Three", DT::dataTableOutput("selectedHUC")),#------Nav Bar--------
       bslib::nav_spacer(),
       bslib::nav_menu(
         title = "Links",

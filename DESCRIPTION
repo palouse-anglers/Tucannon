@@ -13,10 +13,25 @@ Imports:
     data.table,
     dplyr,
     DT,
+    geojsonsf,
     golem (>= 0.4.1),
     highcharter,
+    htmltools,
+    httr,
+    janitor,
+    leafem,
+    leaflet,
+    leaflet.extras,
+    leaflet.providers,
+    leafpop,
     lubridate,
-    shiny (>= 1.8.1.1)
+    sf,
+    shiny (>= 1.8.1.1),
+    shinydashboard,
+    shinyWidgets,
+    tidylog,
+    tidyr,
+    tidyverse
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.1

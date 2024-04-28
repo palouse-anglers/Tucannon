@@ -4,6 +4,18 @@
 #'     DO NOT REMOVE.
 #' @import shiny
 #' @noRd
+#' 
+#' 
+
+
+# load files --------------------------------------------------------------
+huc12 <- sf::st_read("inst/huc_merge/HUC12.shp")
+powers <- sf::st_read("inst/huc_merge/powers.shp")
+
+
+# Start server ------------------------------------------------------------
+
+
 app_server <- function(input, output, session) {
   
 
@@ -67,6 +79,8 @@ output$do_plot <- renderHighchart({
   })
   
 
+# Leaflet -----------------------------------------------------------------
+
 output$leafmap <- renderLeaflet({
   
   # Hydrography layer options 
@@ -80,38 +94,77 @@ output$leafmap <- renderLeaflet({
     )
   
   
-  
-  leaflet(options = leafletOptions(
-    attributionControl=FALSE)) %>%
+  leaflet() %>%
     addTiles() %>%
-    setView(lat = 46.29929,lng = -118.02250,zoom = 9) %>%
-    addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",options = opt,group="Waterways") %>%
-    addProviderTiles("Esri.WorldImagery", group="Imagery") %>%
-    addProviderTiles("CartoDB.DarkMatter", group="Dark") %>%
-    addProviderTiles("Esri.NatGeoWorldMap", group="Topo") %>%
-    addProviderTiles("OpenStreetMap", group="Street") %>%
-    addSearchOSM() %>%
-    addResetMapButton() %>%
-    #addSearchGoogle() %>%
-    addLayersControl(
-      overlayGroups = c("Waterways"),
-      baseGroups = c("Imagery", "Dark", "Topo", "Street")
-    ) %>%
-    leaflet.extras::addFullscreenControl() %>%
-    leafem::addMouseCoordinates() %>%
-    hideGroup(c("Waterways"))
+    #addPolygons(data=columbia_co) %>%
+    #addPolygons(data=private_ag23) %>%
+    addPolygons(data=huc12,
+                layerId = huc12$Name,
+                color = "black",
+                weight = 1,
+                highlight = highlightOptions(
+                  weight = 3,
+                  fillOpacity = 0.2,
+                  color = "purple",
+                  fillColor = "#6a0d83",
+                  opacity = 1.0,
+                  bringToFront = TRUE,
+                  sendToBack = TRUE),  
+                
+                # # Add label info when mouseover
+                label = ~Name,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", padding = "3px 8px"),
+                  textsize = "14px",
+                  direction = "auto")) %>%
+    #addPolygons(data=private_ag23,popup = ~popupTable(private_ag23)) %>%
+    addMarkers(data=powers,group="WQStation")
+
+
+})
+  
+
+# map click ---------------------------------------------------------------
+
+#clicked_HUC <- reactive({selected_huc=list()})
+clicked_HUC <- reactiveVal(NULL)
+
+observeEvent(input$leafmap_shape_click, {
+  
+  # capture the info of the clicked polygon
+  click <- input$leafmap_shape_click
+  # subset to clicked
+  clicked_HUC_data <- huc12[huc12$Name == click$id,]
+  # Store in reactive val
+  clicked_HUC(clicked_HUC_data)
+   
+  print(clicked_HUC())
+  
+  })
   
   
+output$selectedHUC <- DT::renderDataTable({
+  # Check if clicked_HUC is NULL (no shape clicked yet)
+  if (is.null(clicked_HUC())) {
+    return(NULL)  # Return NULL if no shape clicked
+  } else {
+    # Render the DataTable with the filtered data
+    DT::datatable(data = clicked_HUC())
+  }
+
+  })
+  
+
+
+output$selectedHUC_name <- renderText({
+  # Check if clicked_HUC is NULL (no shape clicked yet)
+    shiny::req(input$leafmap_shape_click)
+    # Render the DataTable with the filtered data
+    clicked_HUC() %>% dplyr::pull(Name)
   
   
 })
   
-  
-  
-  
-  
-  
-  
-} #--------------------------- End Server---------------------------------
+} #================ End Server===========================================-
 
 
