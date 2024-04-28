@@ -5,7 +5,21 @@
 #' @import shiny
 #' @noRd
 #' 
-
+library(janitor)
+library(tidylog)
+library(leaflet)
+library(htmltools)
+library(httr)
+library(leaflet.providers)
+library(leaflet.extras)
+library(tidyverse)
+library(geojsonsf)
+library(sf)
+library(leafem)
+library(leafpop)
+library(shiny)
+library(shinyWidgets)
+library(shinydashboard)
 library(bslib)
 
 # Highcharts --------------------------------------------------------------
@@ -39,24 +53,36 @@ app_ui <- function(request) {
     # Your application UI logic
     bslib::page_navbar(
       title = "My App",
-      bslib::nav_panel(
-        title = "Water Quality", 
-        bslib::navset_tab( 
+      bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
+    bslib::navset_tab( 
           bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
                            card(
                              fill = TRUE,
                              full_screen = TRUE,
                              style = "resize:both;",
-                             card_header("Plots that grow but don't shrink"),
+                             card_header("Dissolved Oxygen"),
                              card_body(highchartOutput("do_plot"))
                               ),
           value = "do_tab"), #-------------- End DO Tab----------------------
-          bslib::nav_panel(title = "Temperature", p("Second tab content.")),
+         bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
+                          layout_column_wrap(
+                            #width = 1/2,
+                            #height = 300,
+                            card(full_screen = TRUE, card_header(""), card_body(by_year)),
+                            card(full_screen = TRUE, card_header(""), card_body(by_year_box)),
+                            card(full_screen = TRUE, card_header(""), card_body(by_summer)),
+                            card(full_screen = TRUE, card_header(""), card_body(by_year_scatter)),
+                            card(full_screen = TRUE, card_header(""), card_body(by_month))
+                          ) #-----end temperature card row 
+                          
+                          
+                          
+         ), #----- End Temp Tab-------
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
         )
       ),
-      bslib::nav_panel(title = "Two", p("Second page content.")),
-      bslib::nav_panel("Three", p("Third page content.")),
+      bslib::nav_panel(title = "Watersheds Map", leafletOutput("leafmap")),#---Nav Bar----
+      bslib::nav_panel("Three", p("Third page content.")),#------Nav Bar--------
       bslib::nav_spacer(),
       bslib::nav_menu(
         title = "Links",

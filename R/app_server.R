@@ -66,7 +66,45 @@ output$do_plot <- renderHighchart({
     
   })
   
+
+output$leafmap <- renderLeaflet({
   
+  # Hydrography layer options 
+  opt <-
+    leaflet::WMSTileOptions(
+      format = "image/png32",
+      version = "1.3.0",
+      minZoom = 3,
+      maxZoom = 16,
+      transparent = TRUE
+    )
+  
+  
+  
+  leaflet(options = leafletOptions(
+    attributionControl=FALSE)) %>%
+    addTiles() %>%
+    setView(lat = 46.29929,lng = -118.02250,zoom = 9) %>%
+    addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",options = opt,group="Waterways") %>%
+    addProviderTiles("Esri.WorldImagery", group="Imagery") %>%
+    addProviderTiles("CartoDB.DarkMatter", group="Dark") %>%
+    addProviderTiles("Esri.NatGeoWorldMap", group="Topo") %>%
+    addProviderTiles("OpenStreetMap", group="Street") %>%
+    addSearchOSM() %>%
+    addResetMapButton() %>%
+    #addSearchGoogle() %>%
+    addLayersControl(
+      overlayGroups = c("Waterways"),
+      baseGroups = c("Imagery", "Dark", "Topo", "Street")
+    ) %>%
+    leaflet.extras::addFullscreenControl() %>%
+    leafem::addMouseCoordinates() %>%
+    hideGroup(c("Waterways"))
+  
+  
+  
+  
+})
   
   
   
