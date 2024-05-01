@@ -21,6 +21,7 @@ library(shiny)
 library(shinyWidgets)
 library(shinydashboard)
 library(bslib)
+library(shinyjs)
 
 # Highcharts --------------------------------------------------------------
 
@@ -40,8 +41,8 @@ suppressWarnings(
 
 
 link_shiny <- tags$a(
-  shiny::icon("github"), "Shiny",
-  href = "https://github.com/rstudio/shiny",
+  shiny::icon("github"), "Repository",
+  href = "https://github.com/palouse-anglers/Tucannon",
   target = "_blank"
 )
 link_posit <- tags$a(
@@ -55,12 +56,15 @@ app_ui <- function(request) {
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
+    useShinyjs(), 
     # Your application UI logic
-    bslib::page_navbar(
-      title = "My App",
-      bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
+    bslib::page_navbar(id = "navbar_items_id",
+      title = "Tucannon",
+
+# Water Quality -----------------------------------------------------------
+    bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
     bslib::navset_tab(id = "navset_tabs_id",
-          bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
+        bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
                            card(
                              fill = TRUE,
                              full_screen = TRUE,
@@ -80,42 +84,50 @@ app_ui <- function(request) {
                             card(full_screen = TRUE, card_header(""), card_body(by_month))
                           ) #-----end temperature card row 
                           
-                          
-                          
          ), #----- End Temp Tab-------
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
         )
       ),
+
+# Watersheds --------------------------------------------------------------
+
       bslib::nav_panel(title = "Watersheds Map",
-                       
-                       shinyWidgets::pickerInput(width = '500px',
-                         options = pickerOptions(
-                           `count-selected-text` = "{0} Sites Selected",
-                           container = "body",
-                           actionsBox = TRUE,
-                           liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
-                         multiple = T,
-                         inputId = "watersheds",
-                         label = "HUC 12 Watersheds",
-                         choices = huc12$Name,
-                         #selected= filtered_huc()$Name,   
-                         choicesOpt = list(
-                           subtext = huc12$HUC12)
-                       ),
-                layout_column_wrap(
-                  layout_column_wrap(uiOutput("acres_box"),
-                                     uiOutput("wildlife_box")
-                                     ),
-                       card(id = "leaflet_map",
+    shinyWidgets::pickerInput(width = '500px',
+                              options = pickerOptions(
+                                `count-selected-text` = "{0} Sites Selected",
+                                container = "body",
+                                actionsBox = TRUE,
+                                liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
+                              multiple = T,
+                              inputId = "watersheds",
+                              label = "HUC 12 Watersheds",
+                              choices = huc12$Name,
+                              #selected= filtered_huc()$Name,   
+                              choicesOpt = list(subtext = huc12$HUC12)),
+  layout_column_wrap(
+          layout_column_wrap(uiOutput("acres_box"),
+                            uiOutput("wildlife_box")
+                            ),# -------end wildlife boxes
+          
+          card(
+          
+                         id = "leaflet_map",
                          full_screen = TRUE,
                          style = "resize:both;",
-                         card_header(textOutput("selectedHUC_name")),
-                         card_body(leafletOutput("leafmap"))), #----- End leaflet map card-----
-                       uiOutput("additional_card"),
-                      value = "map_tab" ) #---- End layout_column_wrap map------
-                       ),#---Nav Bar----
-      bslib::nav_panel("Three", p("try")),#------Nav Bar--------
+                         #card_header(textOutput("selectedHUC_name")),
+                         card_body(leafletOutput("leafmap"))
+                         ), #----- End leaflet map card-----
+                      
+                      value = "map_tab" 
+                  ) #---- End layout_column_wrap map------
+                  ),#---watersheds Nav Bar----
+
+# Landcover ---------------------------------------------------------------
+
+      bslib::nav_panel("Landcover", p("Landcover")),#------Nav Bar--------
+      bslib::nav_panel("Guidance", p("")),#------Nav Bar--------
       bslib::nav_spacer(),
+      #bslib::nav_spacer(),
       bslib::nav_menu(
         title = "Links",
         align = "right",

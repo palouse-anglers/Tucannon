@@ -94,6 +94,23 @@ huc12 %>%
 })
 
 
+
+# hide input --------------------------------------------------------------
+
+observe({
+  
+  
+  # When the "watersheds" tab is selected, show the pickerInput
+  if (input$navbar_items_id == "Watersheds Map") {
+    shinyjs::show("watersheds")
+  } else {
+    shinyjs::hide("watersheds")
+  }
+
+  })
+
+
+
 # watersheds picker -------------------------------------------------------
 
 
@@ -104,13 +121,11 @@ huc12 %>%
 output$acres_box <- renderUI({
 
   
-  if(nrow(filtered_huc())>1){
-chart <- highcharter::hchart(
-  filtered_huc(), 
-  "column", 
-  hcaes(x = Name, y = HUC_Acres, group = Name))
+  if (nrow(filtered_huc()) > 1) {
+    chart <- highcharter::hchart(filtered_huc(),
+   "column",
+   hcaes(x = Name, y = HUC_Acres, group = Name))
   } else{
-    
     chart <- NULL
   }
   
@@ -123,7 +138,7 @@ chart <- highcharter::hchart(
     p("Peaked 17.3% in May 1975"),
     chart,
     full_screen = TRUE,
-    theme = "success"
+    theme = "info"
   )
   
   
@@ -135,30 +150,56 @@ chart <- highcharter::hchart(
 
 
 output$wildlife_box <- renderUI({
-  
- card(card_header("Wildlife"),
-   style = "resize:both;",
-      full_screen = TRUE,
+layout_columns(  
+page_fillable(
+  layout_columns(
   value_box(
     title = "Mule Deer", 
-    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    p(glue::glue("Mule Deer Acres {round(sum(filtered_huc()$Mule_Dr_Ac),0)}")),
+    value=glue::glue("Mule Deer Acres {round(sum(filtered_huc()$Mule_Dr_Ac),0)}"),
     p(glue::glue("Mule Deer % {round(sum(filtered_huc()$Mule_Dr_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
     #showcase = sparkline,
     full_screen = TRUE,
-    theme = "success"
+    theme = "info"
   ),  
   value_box(
-    title = "Elk", 
+    title = "Elk",
     #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    p(glue::glue("Elk Acres {round(sum(filtered_huc()$RM_Elk_Ac),0)}")),
+    value=glue::glue("Elk Acres {round(sum(filtered_huc()$RM_Elk_Ac),0)}"),
     p(glue::glue("Elk % {round(sum(filtered_huc()$RM_Elk_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
     #showcase = sparkline,
     full_screen = TRUE,
+    theme = "info"
+  )),
+layout_columns(
+  value_box(
+    title = "Pheasant", 
+    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
+    value=glue::glue("Pheasant Acres {round(sum(filtered_huc()$RN_Phea_Ac),0)}"),
+    p(glue::glue("Pheasant % {round(sum(filtered_huc()$RN_Phea_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
+    #showcase = sparkline,
+    full_screen = TRUE,
+    theme = "info"),
+  value_box(
+    title = "WT Deer",
+    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
+    value=glue::glue("WT Deer Acres {round(sum(filtered_huc()$NWWT_Dr_Ac),0)}"),
+    p(glue::glue("WT Deer % {round(sum(filtered_huc()$NWWT_Dr_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
+    #showcase = sparkline,
+    full_screen = TRUE,
+    theme = "info")),
+layout_columns(
+  value_box(
+    title = "Sheep", 
+    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
+    value=glue::glue("WT Deer Acres {round(sum(filtered_huc()$BHSheep_Ac),0)}"),
+    p(glue::glue("WT Deer % {round(sum(filtered_huc()$BHSheep_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
+    #showcase = sparkline,
+    full_screen = TRUE,
     theme = "info")
-  
+)
   )
-  
+
+)
 
   
 })
@@ -287,11 +328,10 @@ output$additional_card <- renderUI({
 
 
 # Leaflet Proxy -----------------------------------------------------------
-outputOptions(output, "leafmap", suspendWhenHidden = FALSE)
+#outputOptions(output, "leafmap", suspendWhenHidden = FALSE)
 
 observe({
   
-  input$navset_tabs_id 
  # clicked_HUC()
  #  
  # print(filtered_huc())
