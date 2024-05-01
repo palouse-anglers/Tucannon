@@ -31,6 +31,11 @@ suppressWarnings(
   )
 
 
+# shapefiles --------------------------------------------------------------
+
+
+
+
 # Navbar links ------------------------------------------------------------
 
 
@@ -54,7 +59,7 @@ app_ui <- function(request) {
     bslib::page_navbar(
       title = "My App",
       bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
-    bslib::navset_tab( 
+    bslib::navset_tab(id = "navset_tabs_id",
           bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
                            card(
                              fill = TRUE,
@@ -81,18 +86,35 @@ app_ui <- function(request) {
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
         )
       ),
-      bslib::nav_panel(title = "Watersheds Map", 
-                       layout_column_wrap(
+      bslib::nav_panel(title = "Watersheds Map",
+                       
+                       shinyWidgets::pickerInput(width = '500px',
+                         options = pickerOptions(
+                           `count-selected-text` = "{0} Sites Selected",
+                           container = "body",
+                           actionsBox = TRUE,
+                           liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
+                         multiple = T,
+                         inputId = "watersheds",
+                         label = "HUC 12 Watersheds",
+                         choices = huc12$Name,
+                         #selected= filtered_huc()$Name,   
+                         choicesOpt = list(
+                           subtext = huc12$HUC12)
+                       ),
+                layout_column_wrap(
+                  layout_column_wrap(uiOutput("acres_box"),
+                                     uiOutput("wildlife_box")
+                                     ),
                        card(id = "leaflet_map",
-                         fill = TRUE,
                          full_screen = TRUE,
                          style = "resize:both;",
                          card_header(textOutput("selectedHUC_name")),
-                         card_body(leafletOutput("leafmap"))
-                       ), #----- End leaflet map card-----
+                         card_body(leafletOutput("leafmap"))), #----- End leaflet map card-----
+                       uiOutput("additional_card"),
                       value = "map_tab" ) #---- End layout_column_wrap map------
                        ),#---Nav Bar----
-      bslib::nav_panel("Three", DT::dataTableOutput("selectedHUC")),#------Nav Bar--------
+      bslib::nav_panel("Three", p("try")),#------Nav Bar--------
       bslib::nav_spacer(),
       bslib::nav_menu(
         title = "Links",
