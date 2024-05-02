@@ -134,8 +134,8 @@ output$acres_box <- renderUI({
     title = "HUC Acres",
     value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
     p(glue::glue("{length(unique(filtered_huc()$Name))} watersheds selected")),
-    p("Averaged 8.6% over that period"),
-    p("Peaked 17.3% in May 1975"),
+    p("Columbia County HUC12"),
+    p("Tucannon Watershed"),
     chart,
     full_screen = TRUE,
     theme = "info"
@@ -148,60 +148,72 @@ output$acres_box <- renderUI({
 
 # wildlife box ------------------------------------------------------------
 
+output$erosion_box <- renderUI({ 
+  
+  erosion_vars <- huc12 %>%
+    select(Severe_Ac_,Mod_Ac_Wtr,No_WtrEr_A) %>%
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  erosion_names <- c("Severe","Moderate","None")
+  
+  total_huc_acre <-  sum(filtered_huc()$HUC_Acres)
+  
+  erosion_panels <- purrr::map2_dfr(
+    as.character(erosion_vars),as.character(erosion_names),~
+      data.frame(Erosion=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]]), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]])/total_huc_acre*100,2)}"))) 
+  
+  card(id = "erosion_card",
+       height = 300,
+       style = "resize:vertical;",
+       card_header("Water Erosion"),
+       card_body(
+         #min_height = 250,
+         #DT::datatable(panels2),
+         DT::datatable(erosion_panels,options = list(dom = 't'))
+       )
+  )
+  
+  
+  })
+
+
 
 output$wildlife_box <- renderUI({
-layout_columns(  
-page_fillable(
-  layout_columns(
-  value_box(
-    title = "Mule Deer", 
-    value=glue::glue("Mule Deer Acres {round(sum(filtered_huc()$Mule_Dr_Ac),0)}"),
-    p(glue::glue("Mule Deer % {round(sum(filtered_huc()$Mule_Dr_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
-    #showcase = sparkline,
-    full_screen = TRUE,
-    theme = "info"
-  ),  
-  value_box(
-    title = "Elk",
-    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    value=glue::glue("Elk Acres {round(sum(filtered_huc()$RM_Elk_Ac),0)}"),
-    p(glue::glue("Elk % {round(sum(filtered_huc()$RM_Elk_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
-    #showcase = sparkline,
-    full_screen = TRUE,
-    theme = "info"
-  )),
-layout_columns(
-  value_box(
-    title = "Pheasant", 
-    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    value=glue::glue("Pheasant Acres {round(sum(filtered_huc()$RN_Phea_Ac),0)}"),
-    p(glue::glue("Pheasant % {round(sum(filtered_huc()$RN_Phea_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
-    #showcase = sparkline,
-    full_screen = TRUE,
-    theme = "info"),
-  value_box(
-    title = "WT Deer",
-    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    value=glue::glue("WT Deer Acres {round(sum(filtered_huc()$NWWT_Dr_Ac),0)}"),
-    p(glue::glue("WT Deer % {round(sum(filtered_huc()$NWWT_Dr_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
-    #showcase = sparkline,
-    full_screen = TRUE,
-    theme = "info")),
-layout_columns(
-  value_box(
-    title = "Sheep", 
-    #value = scales::comma(round(sum(filtered_huc()$HUC_Acres),0)),
-    value=glue::glue("WT Deer Acres {round(sum(filtered_huc()$BHSheep_Ac),0)}"),
-    p(glue::glue("WT Deer % {round(sum(filtered_huc()$BHSheep_Ac)/sum(filtered_huc()$HUC_Acres),0)}")),
-    #showcase = sparkline,
-    full_screen = TRUE,
-    theme = "info")
-)
-  )
-
-)
-
   
+  
+accord_names <- huc12 %>%
+  select(ends_with("Ac")) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry|Weg|Cliff",negate = TRUE)
+  
+abv_names <- c("Elk","Mule Deer","WT Deer","Pheasant","Water Fowl","Chuckar","Sheep")
+
+total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+
+ 
+
+wildlife_panels <- purrr::map2_dfr(
+  as.character(accord_names),as.character(abv_names),~
+    data.frame(Animal=.y,
+               Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]]), 0))}"),
+               Percent=glue::glue("% {round(sum(filtered_huc()[[.x]])/total_huc_acrew*100,2)}"))) 
+
+
+  card(id = "wildlife_card",
+  height = 450,
+  style = "resize:vertical;",
+  card_header("Wildlife"),
+  card_body(
+    #min_height = 250,
+    #DT::datatable(panels2),
+    DT::datatable(wildlife_panels,options = list(dom = 't'))
+  )
+)
+
+
 })
 
 
@@ -235,15 +247,6 @@ output$leafmap <- renderLeaflet({
 
 })
   
-# 
-# watersheds_selected <- input$watersheds
-# 
-# 
-# observeEvent(input$watersheds,{
-# 
-#   clicked_HUC(c(clicked_HUC(), input$watersheds))
-# 
-# })
 
 
 # map click ---------------------------------------------------------------

@@ -22,7 +22,7 @@ library(shinyWidgets)
 library(shinydashboard)
 library(bslib)
 library(shinyjs)
-
+library(shinydashboardPlus)
 # Highcharts --------------------------------------------------------------
 
 suppressWarnings(
@@ -64,6 +64,18 @@ app_ui <- function(request) {
 # Water Quality -----------------------------------------------------------
     bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
     bslib::navset_tab(id = "navset_tabs_id",
+                      bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
+                                       layout_column_wrap(
+                                         #width = 1/2,
+                                         #height = 300,
+                                         card(full_screen = TRUE, card_header(""), card_body(by_year)),
+                                         card(full_screen = TRUE, card_header(""), card_body(by_year_box)),
+                                         card(full_screen = TRUE, card_header(""), card_body(by_summer)),
+                                         card(full_screen = TRUE, card_header(""), card_body(by_year_scatter)),
+                                         card(full_screen = TRUE, card_header(""), card_body(by_month))
+                                       ) #-----end temperature card row 
+                                       
+                      ),
         bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
                            card(
                              fill = TRUE,
@@ -73,18 +85,11 @@ app_ui <- function(request) {
                              card_body(highchartOutput("do_plot"))
                               ),
           value = "do_tab"), #-------------- End DO Tab----------------------
-         bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
-                          layout_column_wrap(
-                            #width = 1/2,
-                            #height = 300,
-                            card(full_screen = TRUE, card_header(""), card_body(by_year)),
-                            card(full_screen = TRUE, card_header(""), card_body(by_year_box)),
-                            card(full_screen = TRUE, card_header(""), card_body(by_summer)),
-                            card(full_screen = TRUE, card_header(""), card_body(by_year_scatter)),
-                            card(full_screen = TRUE, card_header(""), card_body(by_month))
-                          ) #-----end temperature card row 
-                          
-         ), #----- End Temp Tab-------
+#----- End Temp Tab-------
+          bslib::nav_panel(title = "Phosphorus",p("Phosphorus Placeholder")),
+          bslib::nav_panel(title = "TSS",p("TSS Placeholder")),
+          bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
+          bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
         )
       ),
@@ -92,21 +97,29 @@ app_ui <- function(request) {
 # Watersheds --------------------------------------------------------------
 
       bslib::nav_panel(title = "Watersheds Map",
-    shinyWidgets::pickerInput(width = '500px',
-                              options = pickerOptions(
-                                `count-selected-text` = "{0} Sites Selected",
-                                container = "body",
-                                actionsBox = TRUE,
-                                liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
-                              multiple = T,
-                              inputId = "watersheds",
-                              label = "HUC 12 Watersheds",
-                              choices = huc12$Name,
-                              #selected= filtered_huc()$Name,   
-                              choicesOpt = list(subtext = huc12$HUC12)),
+ 
   layout_column_wrap(
-          layout_column_wrap(uiOutput("acres_box"),
-                            uiOutput("wildlife_box")
+    
+          layout_column_wrap(
+            card(full_screen = TRUE,
+              card_header(shinyWidgets::pickerInput(width = '400px',
+                            options = pickerOptions(
+                             `count-selected-text` = "{0} Sites Selected",
+                             container = "body",
+                             actionsBox = TRUE,
+                             liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
+                            multiple = T,
+                            inputId = "watersheds",
+                            label = "HUC 12 Watersheds",
+                            choices = huc12$Name,
+                            #selected= filtered_huc()$Name,   
+                            choicesOpt = list(subtext = huc12$HUC12))),
+              card_body(uiOutput("acres_box"))
+              ),
+                             card(
+                             card_body(uiOutput("wildlife_box")),
+                             card_body(uiOutput("erosion_box"))
+                             ),
                             ),# -------end wildlife boxes
           
           card(
