@@ -61,8 +61,24 @@ app_ui <- function(request) {
     bslib::page_navbar(id = "navbar_items_id",
       title = "Tucannon",
 
+
+# CTUIR -------------------------------------------------------------------
+
+bslib::nav_panel(
+  title = "River Restoration",
+  #---------------Nav Bar------
+  bslib::navset_tab(
+    id = "navset_tabs_ctuir_id",
+    bslib::nav_panel(title = "Monitoring and Evaluation Data", ),
+    bslib::nav_panel(title = "Restoration",
+                     htmlOutput("output$iframe_ctuir_rest")),
+    bslib::nav_panel(title = "Geomorphic Assessment",
+                     htmlOutput("output$iframe_ctuir_geo"))
+  )),                 
+                                     
 # Water Quality -----------------------------------------------------------
-    bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
+
+bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
     bslib::navset_tab(id = "navset_tabs_id",
                       bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
                                        layout_column_wrap(
@@ -87,6 +103,27 @@ app_ui <- function(request) {
           value = "do_tab"), #-------------- End DO Tab----------------------
 #----- End Temp Tab-------
           bslib::nav_panel(title = "Phosphorus",p("Phosphorus Placeholder")),
+          bslib::nav_panel(title = "Flow",
+            layout_column_wrap(card(
+                             #fill = TRUE,
+                             full_screen = TRUE,
+                             title = "Tucannon-Starbuck 13344500",
+                             card_header("Tucannon-Starbuck 13344500"),
+                             status = "info",
+                             width = "100%",
+                             card_body(htmlOutput("iframe_starbuck"))
+                             ),
+                        card(
+                               fill = TRUE,
+                               full_screen = TRUE,
+                               title = "Tucannon-Marengo 35B150",
+                               status = "info",
+                               width = "100%",
+                               card_header("Tucannon-Marengo 35B150"),
+                               card_body(htmlOutput("iframe_marengo"))
+                             )
+            ) # End layout_column_wrap
+                           ), # End flow nav panel
           bslib::nav_panel(title = "TSS",p("TSS Placeholder")),
           bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
           bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),

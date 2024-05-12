@@ -9,8 +9,36 @@
 
 
 # load files --------------------------------------------------------------
+# Starbuck
+# https://waterdata.usgs.gov/nwis/inventory?site_no=13344500&agency_cd=USGS
+# Starbuck Dashboard
+# https://dashboard.waterdata.usgs.gov/api/gwis/2.1/service/site?agencyCode=USGS&siteNumber=13344500&open=151971
+
+# Marengo
+# https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationDetails?sta=35B150
+
 huc12 <- sf::st_read("inst/huc_merge/HUC12.shp",quiet = TRUE)
-powers <- sf::st_read("inst/huc_merge/powers.shp",quiet = TRUE)
+stations <- sf::st_read("inst/huc_merge/stations.shp",quiet = TRUE)
+
+# Wetlands
+wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE)
+
+# Geologically Hazardous Areas
+geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp",quiet = TRUE)
+
+# Frequently Flooded Areas
+freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp",quiet = TRUE)
+
+
+land_Cover_11 <- sf::st_read("../../Downloads/Layers/Landcover_11_Private.shp",quiet = TRUE) %>%
+  st_transform(.,crs=4326)
+
+land_Cover_19 <- sf::st_read("../../Downloads/Layers/Landcover_19_Private.shp",quiet = TRUE) %>%
+  st_transform(.,crs=4326)
+
+pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) %>%
+  st_transform(.,crs=4326)
+
 
 bmp_points <-  sf::st_read("inst/huc_merge/BMP_points.shp",quiet = TRUE) 
 bmp_lines <-  sf::st_read("inst/huc_merge/BMP_line.shp",quiet = TRUE)
@@ -82,6 +110,59 @@ output$do_plot <- renderHighchart({
   
 
 
+# Iframes -----------------------------------------------------------------
+
+## Starbuck Flow ----------------------------------------------------------
+
+output$iframe_starbuck <- renderUI({
+  iframe_tag <- tags$iframe(
+    src = "https://dashboard.waterdata.usgs.gov/api/gwis/2.1/service/site?agencyCode=USGS&siteNumber=13344500&open=151971",
+    style='width:80vw;height:100vh;'
+    )
+
+})
+
+## Marengo Flow ----------------------------------------------------------
+
+output$iframe_marengo <- renderUI({
+  iframe_tag <- tags$iframe(
+    src = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/35B150/35B150_DSG_SD.PNG",  
+    style='width:100vw;height:100vh;'
+  )
+  
+})
+
+## Ecy Map ----------------------------------------------------------
+
+output$iframe_ecymaps <- renderUI({
+  iframe_tag <- tags$iframe(
+    src = "https://apps.ecology.wa.gov/continuousflowandwq/",  
+    style='width:100vw;height:100vh;'
+  )
+  
+})
+
+
+
+## CTUIR  ----------------------------------------------------------
+
+output$iframe_ctuir_geo <- renderUI({
+  iframe_tag <- tags$iframe(
+    src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=799651538e3f4cacb540a7ec8fba1ce7",  
+    style='width:100vw;height:100vh;'
+  )
+  
+})
+
+## CTUIR2  ----------------------------------------------------------
+
+output$iframe_ctuir_rest <- renderUI({
+  iframe_tag <- tags$iframe(
+    src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5",  
+    style='width:100vw;height:100vh;'
+  )
+  
+})
 
 
 # filtered huc12 ----------------------------------------------------------
@@ -363,7 +444,7 @@ observe({
                   textsize = "14px",
                   direction = "auto"))   %>%
     #addPolygons(data=private_ag23,popup = ~popupTable(private_ag23)) %>%
-    addMarkers(data=powers,group="WQStation") %>%
+    addMarkers(data=stations,group="WQStation") %>%
     addPolygons(data=bmp_shape,
                 group="BMP",
                 label = ~CntrctN,
