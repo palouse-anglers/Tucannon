@@ -117,7 +117,7 @@ output$do_plot <- renderHighchart({
 output$iframe_starbuck <- renderUI({
   iframe_tag <- tags$iframe(
     src = "https://dashboard.waterdata.usgs.gov/api/gwis/2.1/service/site?agencyCode=USGS&siteNumber=13344500&open=151971",
-    style='width:80vw;height:100vh;'
+    style='width:100vw;height:100vh;'
     )
 
 })
@@ -127,7 +127,7 @@ output$iframe_starbuck <- renderUI({
 output$iframe_marengo <- renderUI({
   iframe_tag <- tags$iframe(
     src = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/35B150/35B150_DSG_SD.PNG",  
-    style='width:100vw;height:100vh;'
+    style='width:90vw;height:100vh;'
   )
   
 })
@@ -149,7 +149,7 @@ output$iframe_ecymaps <- renderUI({
 output$iframe_ctuir_geo <- renderUI({
   iframe_tag <- tags$iframe(
     src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=799651538e3f4cacb540a7ec8fba1ce7",  
-    style='width:100vw;height:100vh;'
+    style='width:95vw;height:90vh;'
   )
   
 })
@@ -159,7 +159,7 @@ output$iframe_ctuir_geo <- renderUI({
 output$iframe_ctuir_rest <- renderUI({
   iframe_tag <- tags$iframe(
     src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5",  
-    style='width:100vw;height:100vh;'
+    style='width:95vw;height:90vh;'
   )
   
 })

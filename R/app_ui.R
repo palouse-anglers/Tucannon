@@ -62,19 +62,7 @@ app_ui <- function(request) {
       title = "Tucannon",
 
 
-# CTUIR -------------------------------------------------------------------
-
-bslib::nav_panel(
-  title = "River Restoration",
-  #---------------Nav Bar------
-  bslib::navset_tab(
-    id = "navset_tabs_ctuir_id",
-    bslib::nav_panel(title = "Monitoring and Evaluation Data", ),
-    bslib::nav_panel(title = "Restoration",
-                     htmlOutput("output$iframe_ctuir_rest")),
-    bslib::nav_panel(title = "Geomorphic Assessment",
-                     htmlOutput("output$iframe_ctuir_geo"))
-  )),                 
+               
                                      
 # Water Quality -----------------------------------------------------------
 
@@ -103,27 +91,18 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
           value = "do_tab"), #-------------- End DO Tab----------------------
 #----- End Temp Tab-------
           bslib::nav_panel(title = "Phosphorus",p("Phosphorus Placeholder")),
-          bslib::nav_panel(title = "Flow",
-            layout_column_wrap(card(
-                             #fill = TRUE,
+          bslib::nav_panel(title = "Realtime Flows",
+            card(
                              full_screen = TRUE,
                              title = "Tucannon-Starbuck 13344500",
                              card_header("Tucannon-Starbuck 13344500"),
                              status = "info",
                              width = "100%",
-                             card_body(htmlOutput("iframe_starbuck"))
-                             ),
-                        card(
-                               fill = TRUE,
-                               full_screen = TRUE,
-                               title = "Tucannon-Marengo 35B150",
-                               status = "info",
-                               width = "100%",
-                               card_header("Tucannon-Marengo 35B150"),
-                               card_body(htmlOutput("iframe_marengo"))
+                             card_body(htmlOutput("iframe_starbuck")),
+                             card_header("Tucannon-Marengo 35B150"),
+                             card_body(htmlOutput("iframe_marengo"))
                              )
-            ) # End layout_column_wrap
-                           ), # End flow nav panel
+                              ), # End flow nav panel
           bslib::nav_panel(title = "TSS",p("TSS Placeholder")),
           bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
           bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),
@@ -171,7 +150,39 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                       value = "map_tab" 
                   ) #---- End layout_column_wrap map------
                   ),#---watersheds Nav Bar----
+# CTUIR -------------------------------------------------------------------
 
+bslib::nav_panel(
+  title = "River Restoration",
+  #---------------Nav Bar------
+  bslib::navset_tab(
+    id = "navset_tabs_ctuir_id",
+    bslib::nav_panel(title = "Restoration",
+                     
+                     card(
+                       full_screen = TRUE,
+                       title = "Tucannon-Restoration",
+                       card_header("Tucannon Restoration Projects"),
+                       status = "info",
+                       width = "100%",
+                       card_body(htmlOutput("iframe_ctuir_rest")),
+                       card_footer("Web application produced and hosted by the Confederated Tribes of the Umatilla Indian Reservation (CTUIR) GIS Program. 
+Data in this web application is sourced from multiple agencies and publicly available data sources. CTUIR makes no warranty, expressed or implied, including the warranties of merchantability and fitness for a particular purpose, nor assumes any legal liability or responsibility for the accuracy, reliability, completeness or utility of these geospatial data, or for the improper or incorrect use of these geospatial data. The data depicted in this map in no way limit the extent of interests of
+the Confederated Tribes of Umatilla Indian Reservation (CTUIR).Visit tucannonriver.org for more information")
+                     )),
+    bslib::nav_panel(title = "Geomorphic Assessment",
+                     card(
+                       full_screen = TRUE,
+                       title = "Tucannon-Assessment",
+                       card_header("Tucannon Geomorphic Assessment"),
+                       status = "info",
+                       width = "100%",
+                       card_body(htmlOutput("iframe_ctuir_geo")),
+                       card_footer("Web application produced and hosted by the Confederated Tribes of the Umatilla Indian Reservation (CTUIR) GIS Program. 
+Data in this web application is sourced from multiple agencies and publicly available data sources. CTUIR makes no warranty, expressed or implied, including the warranties of merchantability and fitness for a particular purpose, nor assumes any legal liability or responsibility for the accuracy, reliability, completeness or utility of these geospatial data, or for the improper or incorrect use of these geospatial data. The data depicted in this map in no way limit 
+the extent of interests of the Confederated Tribes of Umatilla Indian Reservation (CTUIR). Visit tucannonriver.org for more information")
+                     ))
+  )),  
 # Landcover ---------------------------------------------------------------
 
       bslib::nav_panel("Landcover", p("Landcover")),#------Nav Bar--------
