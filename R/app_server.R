@@ -17,24 +17,30 @@
 # Marengo
 # https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationDetails?sta=35B150
 
-huc12 <- sf::st_read("inst/huc_merge/HUC12.shp",quiet = TRUE)
+huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
+  select(HUC12) %>%
+  left_join(read.csv("inst/huc_merge/HUC12_reworked2.csv") %>% 
+              mutate(HUC12=as.character(HUC12)),by="HUC12")
+
+# huc12 <- sf::st_read("../../../humme/Downloads/Layers/HUC12_Metrics_All.shp") %>%
+#   st_transform(.,crs=4326)
+
 stations <- sf::st_read("inst/huc_merge/stations.shp",quiet = TRUE)
 
 # Wetlands
-wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE)
+wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE) %>%
+  select(WETLAND,Acrs_n_)
 
 # Geologically Hazardous Areas
-geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp",quiet = TRUE)
+geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp",quiet = TRUE) %>%
+  select(frphrtd,weg,muname,Acrs_n_)
 
 # Frequently Flooded Areas
-freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp",quiet = TRUE)
+freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp",quiet = TRUE) %>%
+  select(SYMBOL,Acrs_n_)
 
 
-land_Cover_11 <- sf::st_read("../../Downloads/Layers/Landcover_11_Private.shp",quiet = TRUE) %>%
-  st_transform(.,crs=4326)
 
-land_Cover_19 <- sf::st_read("../../Downloads/Layers/Landcover_19_Private.shp",quiet = TRUE) %>%
-  st_transform(.,crs=4326)
 
 pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) %>%
   st_transform(.,crs=4326)
@@ -43,25 +49,51 @@ pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) 
 bmp_points <-  sf::st_read("inst/huc_merge/BMP_points.shp",quiet = TRUE) 
 bmp_lines <-  sf::st_read("inst/huc_merge/BMP_line.shp",quiet = TRUE)
 bmp_shape <-  sf::st_read("inst/huc_merge/BMP_shape.shp",quiet = TRUE)
+
 # Start server ------------------------------------------------------------
 
 
 app_server <- function(input, output, session) {
   
 
+rve_params <- reactive({
+  
+  params %>%
+  dplyr::filter(year(Date) >= input$dateRange[1] & year(Date) <= input$dateRange[2]) %>% 
+  dplyr::filter(Month %in% input$monthRange)
+
+  })
+  
+ 
+    
+observe(print(input$monthRange))
+
+observe(print(head(rve_params())))
+
 # Do plot -----------------------------------------------------------------
 output$do_plot <- renderHighchart({
     
-  initial_model <- lm(Result ~ Date, data = params %>%
-                        filter(Param == "Dissolved Oxygen"))
+ #  initial_model <- lm(Result ~ Date, data = params %>%
+ #                        filter(Param == "Dissolved Oxygen"))
+ #  
+ # regression_line <- data.frame(
+ #    Date = params %>% filter(Param == "Dissolved Oxygen") %>% pull(Date),
+ #    Result = predict(initial_model)
+ #  )
+ # 
+ 
+ 
   
- regression_line <- data.frame(
-    Date = params %>% filter(Param == "Dissolved Oxygen") %>% pull(Date),
-    Result = predict(initial_model)
-  )
-    
+ do_model <- broom::augment(
+   lm(Result ~ Date, data = rve_params() %>% 
+                                 filter(Param == "Dissolved Oxygen")
+                               ))
+ 
+ 
+ 
+  
   highcharter::hchart(
-     params %>%
+    rve_params() %>%
       filter(Param == "Dissolved Oxygen"),
       type="point",
       hcaes(x = Date, y = Result),
@@ -69,7 +101,7 @@ output$do_plot <- renderHighchart({
       showInLegend = TRUE
     ) %>%
       hc_add_series(tooltip = list(enabled = FALSE),
-                    data = params %>%
+                    data = rve_params() %>%
                       filter(Param == "Dissolved Oxygen") %>%
                       select(-Result),
                     hcaes(x = Date, y = 8),
@@ -90,12 +122,11 @@ output$do_plot <- renderHighchart({
                         return false;
                       }
                             }"))  %>%
-      hc_rangeSelector(enabled = TRUE) %>%
       hc_yAxis(title = list(text = "Dissolved Oxygen mg/L")) %>%
       hc_title(text = "Powers Road") %>%
      hc_add_series(
-       data = regression_line,
-       hcaes(x = Date, y = Result),
+       data =  do_model,
+       hcaes(x = Date, y = .fitted),
        showInLegend = TRUE,
        name = "Regression",
        type = "line",
@@ -108,6 +139,114 @@ output$do_plot <- renderHighchart({
     
   })
   
+# Phosphorus --------------------------------------------------------------
+output$phos_plot <- renderHighchart({
+
+  phos <- rve_params() %>%
+  filter(Param=="Total Phosphorus") %>%
+  group_by(Date) %>%
+  mutate(Result=round(mean(Result),2))%>%
+  distinct(Date,Result,Units) %>%
+  arrange(Date)%>%
+  ungroup()
+
+  req(nrow(phos)>1)
+
+  
+  phos_model <- broom::augment(lm(Result ~ Date, data = phos))
+
+
+
+phos %>%
+  highcharter::hchart(
+    type="scatter",
+    hcaes(x = Date, y = Result),
+    name = "mg/L",
+    showInLegend = TRUE
+  )%>%
+  hc_add_series(
+    tooltip = list(enabled = FALSE),
+    dashStyle = "Dash",
+    data = phos_model,
+    hcaes(x = Date, y = .fitted),
+    showInLegend = TRUE,
+    name = "Regression",
+    type = "line",
+    color = "black"
+  )%>%
+  hc_plotOptions(line = list(
+    marker = list(
+      enabled = FALSE
+    )
+  ))%>%
+  hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' mg/L'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+  hc_yAxis(title = list(text = "mg/L")) %>%
+  hc_title(text = "Total Phosphorus")
+
+})
+
+# Phosphorus --------------------------------------------------------------
+output$orthophos_plot <- renderHighchart({
+  
+  ophos <- rve_params() %>%
+    filter(Param=="Ortho-Phosphate") %>%
+    group_by(Date) %>%
+    mutate(Result=round(mean(Result),2))%>%
+    distinct(Date,Result,Units) %>%
+    arrange(Date)%>%
+    ungroup()
+  
+  req(nrow(ophos)>1)
+  
+  ophos_model <- broom::augment(lm(Result ~ Date, data = ophos))
+  
+  ophos %>%
+    highcharter::hchart(
+      type="scatter",
+      hcaes(x = Date, y = Result),
+      name = "mg/L",
+      showInLegend = TRUE
+    )%>%
+    hc_add_series(
+      tooltip = list(enabled = FALSE),
+      dashStyle = "Dash",
+      data = ophos_model,
+      hcaes(x = Date, y = .fitted),
+      showInLegend = TRUE,
+      name = "Regression",
+      type = "line",
+      color = "black"
+    )%>%
+    hc_plotOptions(line = list(
+      marker = list(
+        enabled = FALSE
+      )
+    ))%>%
+    hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' mg/L'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+    hc_yAxis(title = list(text = "mg/L")) %>%
+    hc_title(text = "Ortho-Phosphate")
+  
+})
 
 
 # Iframes -----------------------------------------------------------------
@@ -227,7 +366,7 @@ output$acres_box <- renderUI({
 })
 
 
-# wildlife box ------------------------------------------------------------
+# erosion box ------------------------------------------------------------
 
 output$erosion_box <- renderUI({ 
   
@@ -243,22 +382,22 @@ output$erosion_box <- renderUI({
   erosion_panels <- purrr::map2_dfr(
     as.character(erosion_vars),as.character(erosion_names),~
       data.frame(Erosion=.y,
-                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]]), 0))}"),
-                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]])/total_huc_acre*100,2)}"))) 
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acre*100,2)}"))) 
   
-  card(id = "erosion_card",
-       height = 300,
-       style = "resize:vertical;",
-       card_header("Water Erosion"),
-       card_body(
-         #min_height = 250,
-         #DT::datatable(panels2),
-         DT::datatable(erosion_panels,options = list(dom = 't'))
-       )
+  
+  accordion_panel(
+    value = "Erosion",
+    title = "Erosion",
+    DT::datatable(erosion_panels,options = list(dom = 't'))
   )
   
   
   })
+
+
+
+# wildlife box ------------------------------------------------------------
 
 
 
@@ -279,24 +418,207 @@ total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
 wildlife_panels <- purrr::map2_dfr(
   as.character(accord_names),as.character(abv_names),~
     data.frame(Animal=.y,
-               Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]]), 0))}"),
-               Percent=glue::glue("% {round(sum(filtered_huc()[[.x]])/total_huc_acrew*100,2)}"))) 
+               Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+               Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
 
 
-  card(id = "wildlife_card",
-  height = 450,
-  style = "resize:vertical;",
-  card_header("Wildlife"),
-  card_body(
-    #min_height = 250,
-    #DT::datatable(panels2),
-    DT::datatable(wildlife_panels,options = list(dom = 't'))
-  )
+accordion_panel(title = "Wildlife",
+                open=TRUE,
+                value="Wildlife",
+                DT::datatable(wildlife_panels,options = list(dom = 't'))
 )
+
+# value_box(
+#   title = "Wildlife", value = "$5,000", ,
+#   theme = "warning", showcase = "Your Plot", showcase_layout = "left center",
+#   full_screen = TRUE, fill = TRUE, height = NULL
+# )
 
 
 })
 
+# geo box ------------------------------------------------------------
+
+
+
+output$geo_box <- renderUI({
+  
+  
+  geo_names <- huc12 %>%
+    select(starts_with("GEO")) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  abv_geo_names <- c('Moderate','Not rated','Severe' ,'Slight','NA')
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+ geo_panels <- purrr::map2_dfr(
+    as.character(geo_names),as.character(abv_geo_names),~
+      data.frame(Severity=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+  
+  
+  accordion_panel(title = "Geologically Hazardous Areas",
+                  open=TRUE,
+                  value="Geologic",
+                  DT::datatable(geo_panels,options = list(dom = 't'))
+  )
+  
+  # value_box(
+  #   title = "Wildlife", value = "$5,000", ,
+  #   theme = "warning", showcase = "Your Plot", showcase_layout = "left center",
+  #   full_screen = TRUE, fill = TRUE, height = NULL
+  # )
+  
+})
+
+# wetlands box ------------------------------------------------------------
+
+
+
+output$wetlands_box <- renderUI({
+  
+  
+ wet_names <- huc12 %>%
+    select(Freshwater.Emergent.Wetland, Freshwater.Forested.Shrub.Wetland,
+           Freshwater.Pond,Lake,Other,Riverine) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  abv_wet_names <- c("Emergent", "Forested-Shrub",
+                     "Pond","Lake","Other","Riverine")
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  geo_panels <- purrr::map2_dfr(
+    as.character(wet_names),as.character(abv_wet_names),~
+      data.frame(Type=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+  
+  
+  accordion_panel(title = "Wetlands",
+                  open=TRUE,
+                  value="Wetlands",
+                  DT::datatable(geo_panels,options = list(dom = 't'))
+  )
+  
+})
+
+
+#land 19 box ------------------------------------------------------------
+
+
+
+output$land19_box <- renderUI({
+  
+  
+  land19_names <- huc12 %>%
+    select(ends_with("_19")) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  abv_land19_names <- c("Dryland Crops", "Cultivated Crops",
+                     "Rangeland","Irrigated Crops")
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  land19_panels <- purrr::map2_dfr(
+    as.character(land19_names),as.character(abv_land19_names),~
+      data.frame(Type=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+  
+  
+  accordion_panel(title = "Agriculture Land Use 2019",
+                  open=TRUE,
+                  value="land2019",
+                  DT::datatable(land19_panels,options = list(dom = 't'))
+  )
+  
+})
+
+#land 11 box ------------------------------------------------------------
+
+
+
+output$land11_box <- renderUI({
+  
+  
+  land11_names <- huc12 %>%
+    select("Crops...Dryland","Rangeland","Crops...Irrigated") %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  abv_land11_names <- c("Dryland Crops","Rangeland","Irrigated Crops")
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  land19_panels <- purrr::map2_dfr(
+    as.character(land11_names),as.character(abv_land11_names),~
+      data.frame(Type=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+  
+  
+  accordion_panel(title = "Agriculture Land Use 2011",
+                  open=TRUE,
+                  value="land2011",
+                  DT::datatable(
+                    land19_panels,
+                    options = list(dom = 't',rownames = FALSE)
+                    )
+  )
+  
+})
+
+# flood box ------------------------------------------------------------
+
+
+
+output$flood_box <- renderUI({
+  
+  
+  accord_names <- huc12 %>%
+    select(ends_with("FLDACRE")) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+ 
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  
+  
+  flood_panels <- data.frame(
+    Acres = glue::glue("{scales::comma(round(sum(filtered_huc()[['FLDACRE']],na.rm=TRUE), 0))}"),
+    Percent = glue::glue("% {round(sum(filtered_huc()[['FLDACRE']],na.rm=TRUE)/total_huc_acrew*100,2)}"))
+
+  
+  
+  accordion_panel(
+    value = "Frequently Flooded",
+    title = "Frequently Flooded",
+    DT::datatable(flood_panels,options = list(dom = 't'))
+  )
+
+})
+
+
+# accordion ---------------------------------------------------------------
+
+accordion_state <- reactiveVal(NULL)
+
+
+observeEvent(input$type_checkbox, {
+  
+bslib::accordion_panel_open(id="acc", 
+                    values= input$type_checkbox,
+                    session=session)
+
+})
 
 
 # Leaflet -----------------------------------------------------------------

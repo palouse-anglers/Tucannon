@@ -5,24 +5,24 @@
 #' @import shiny
 #' @noRd
 #' 
-library(janitor)
-library(tidylog)
-library(leaflet)
-library(htmltools)
-library(httr)
-library(leaflet.providers)
-library(leaflet.extras)
-library(tidyverse)
-library(geojsonsf)
-library(sf)
-library(leafem)
-library(leafpop)
-library(shiny)
-library(shinyWidgets)
-library(shinydashboard)
-library(bslib)
-library(shinyjs)
-library(shinydashboardPlus)
+library(janitor,quietly = TRUE,warn.conflicts = FALSE)
+library(tidylog,quietly = TRUE,warn.conflicts = FALSE)
+library(leaflet,quietly = TRUE,warn.conflicts = FALSE)
+library(htmltools,quietly = TRUE,warn.conflicts = FALSE)
+library(httr,quietly = TRUE,warn.conflicts = FALSE)
+library(leaflet.providers,quietly = TRUE,warn.conflicts = FALSE)
+library(leaflet.extras,quietly = TRUE,warn.conflicts = FALSE)
+library(tidyverse,quietly = TRUE,warn.conflicts = FALSE)
+library(geojsonsf,quietly = TRUE,warn.conflicts = FALSE)
+library(sf,quietly = TRUE,warn.conflicts = FALSE)
+library(leafem,quietly = TRUE,warn.conflicts = FALSE)
+library(leafpop,quietly = TRUE,warn.conflicts = FALSE)
+library(shiny,quietly = TRUE,warn.conflicts = FALSE)
+library(shinyWidgets,quietly = TRUE,warn.conflicts = FALSE)
+library(shinydashboard,quietly = TRUE,warn.conflicts = FALSE)
+library(bslib,quietly = TRUE,warn.conflicts = FALSE)
+library(shinyjs,quietly = TRUE,warn.conflicts = FALSE)
+library(shinydashboardPlus,quietly = TRUE,warn.conflicts = FALSE)
 # Highcharts --------------------------------------------------------------
 
 suppressWarnings(
@@ -31,6 +31,27 @@ suppressWarnings(
     )
   )
 
+
+
+# Theme -------------------------------------------------------------------
+
+theme <- bs_theme(
+  # Controls the default grayscale palette
+  bg = "#202123", fg = "#B8BCC2",
+  # Controls the accent (e.g., hyperlink, button, etc) colors
+  primary = "#EA80FC", secondary = "#48DAC6",
+  base_font = c("Grandstander", "sans-serif"),
+  code_font = c("Courier", "monospace"),
+  heading_font = "'Helvetica Neue', Helvetica, sans-serif",
+  # Can also add lower-level customization
+  "input-border-color" = "#EA80FC"
+)
+
+custom_css <- "
+.bg-dark {
+    background-color: #2c3e50 !important;
+}
+"
 
 # shapefiles --------------------------------------------------------------
 
@@ -58,8 +79,11 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     useShinyjs(), 
     # Your application UI logic
-    bslib::page_navbar(id = "navbar_items_id",
-      title = "Tucannon",
+    bslib::page_navbar(
+      id = "navbar_items_id",
+      theme = bs_theme(fg = "rgb(101, 78, 24)", primary = "#5E9300",
+                       success = "#2c3e50", font_scale = NULL, bg = "#fff"),
+      title = "Tucannon", 
 
 
                
@@ -67,6 +91,26 @@ app_ui <- function(request) {
 # Water Quality -----------------------------------------------------------
 
 bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
+            fluidRow(
+                sliderTextInput(
+                   inputId = "dateRange",
+                   label = "Filter by year", 
+                   choices = 1973:2024,
+                   selected = c(2011,2024),
+                   grid = FALSE
+                 ),
+                shinyWidgets::pickerInput(width = '400px',
+                                          options = pickerOptions(
+                                          `count-selected-text` = "{0} Months Selected",
+                                          container = "body",
+                                          actionsBox = TRUE,
+                                          liveSearch=TRUE,selectedTextFormat= 'count > 3'),   # build buttons for collective selection
+                                          multiple = TRUE,
+                                          inputId = "monthRange",
+                                          label = "Filter by month", 
+                                          choices = month.abb[c(1:12)],
+                                          selected = month.abb[c(1:12)])
+                ),
     bslib::navset_tab(id = "navset_tabs_id",
                       bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
                                        layout_column_wrap(
@@ -81,16 +125,29 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                        
                       ),
         bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
+                         layout_column_wrap(
                            card(
-                             fill = TRUE,
                              full_screen = TRUE,
                              style = "resize:both;",
                              card_header("Dissolved Oxygen"),
                              card_body(highchartOutput("do_plot"))
-                              ),
+                              )
+                           ),
           value = "do_tab"), #-------------- End DO Tab----------------------
 #----- End Temp Tab-------
-          bslib::nav_panel(title = "Phosphorus",p("Phosphorus Placeholder")),
+          bslib::nav_panel(
+            title = "Phosphorus",
+                           
+            layout_column_wrap(
+              card(
+                full_screen = TRUE,
+                card_body(highchartOutput("phos_plot"))
+                ),
+                  card(
+                    full_screen = TRUE,
+                     card_body(highchartOutput("orthophos_plot")),
+                    ))
+          ), 
           bslib::nav_panel(title = "Realtime Flows",
             card(
                              full_screen = TRUE,
@@ -132,13 +189,29 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                             choicesOpt = list(subtext = huc12$HUC12))),
               card_body(uiOutput("acres_box"))
               ),
-                             card(
-                             card_body(uiOutput("wildlife_box")),
-                             card_body(uiOutput("erosion_box"))
+                            card(full_screen = TRUE,
+                                  style = "resize:both;",
+                          card_header(checkboxGroupButtons(
+                            inputId = "type_checkbox",
+                            label = "",
+                            choices = c("Wildlife","Erosion","Frequently Flooded"),
+                            status = "success"
+                          )),
+                          bslib::accordion(id = "acc",
+                            list(
+                             uiOutput("wildlife_box"),
+                             uiOutput("erosion_box"),
+                             uiOutput("wetlands_box"),
+                             uiOutput("flood_box"),
+                             uiOutput("land19_box"),
+                             uiOutput("land11_box"),
+                             uiOutput("geo_box")
+                             ),
+                             ),
                              ),
                             ),# -------end wildlife boxes
           
-          card(
+          card(           fill = TRUE,
           
                          id = "leaflet_map",
                          full_screen = TRUE,
