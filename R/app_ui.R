@@ -5,24 +5,24 @@
 #' @import shiny
 #' @noRd
 #' 
-library(janitor,quietly = TRUE,warn.conflicts = FALSE)
-library(tidylog,quietly = TRUE,warn.conflicts = FALSE)
-library(leaflet,quietly = TRUE,warn.conflicts = FALSE)
-library(htmltools,quietly = TRUE,warn.conflicts = FALSE)
-library(httr,quietly = TRUE,warn.conflicts = FALSE)
-library(leaflet.providers,quietly = TRUE,warn.conflicts = FALSE)
-library(leaflet.extras,quietly = TRUE,warn.conflicts = FALSE)
-library(tidyverse,quietly = TRUE,warn.conflicts = FALSE)
-library(geojsonsf,quietly = TRUE,warn.conflicts = FALSE)
-library(sf,quietly = TRUE,warn.conflicts = FALSE)
-library(leafem,quietly = TRUE,warn.conflicts = FALSE)
-library(leafpop,quietly = TRUE,warn.conflicts = FALSE)
-library(shiny,quietly = TRUE,warn.conflicts = FALSE)
-library(shinyWidgets,quietly = TRUE,warn.conflicts = FALSE)
-library(shinydashboard,quietly = TRUE,warn.conflicts = FALSE)
-library(bslib,quietly = TRUE,warn.conflicts = FALSE)
-library(shinyjs,quietly = TRUE,warn.conflicts = FALSE)
-library(shinydashboardPlus,quietly = TRUE,warn.conflicts = FALSE)
+suppressMessages(library(janitor,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(tidylog,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(leaflet,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(htmltools,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(httr,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(leaflet.providers,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(leaflet.extras,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(tidyverse,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(geojsonsf,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(sf,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(leafem,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(leafpop,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(shiny,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(shinyWidgets,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(shinydashboard,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(bslib,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(shinyjs,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(shinydashboardPlus,quietly = TRUE,warn.conflicts = FALSE))
 # Highcharts --------------------------------------------------------------
 
 suppressWarnings(
@@ -187,17 +187,51 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                             choices = huc12$Name,
                             #selected= filtered_huc()$Name,   
                             choicesOpt = list(subtext = huc12$HUC12))),
-              card_body(uiOutput("acres_box"))
+              card_body(
+                uiOutput("acres_box")
+                ),
+              card_body(uiOutput("bmps_table")
+                        )
+              
               ),
                             card(full_screen = TRUE,
                                   style = "resize:both;",
-                          card_header(checkboxGroupButtons(
-                            inputId = "type_checkbox",
-                            label = "",
-                            choices = c("Wildlife","Erosion","Frequently Flooded"),
-                            status = "success"
-                          )),
-                          bslib::accordion(id = "acc",
+                    
+                                 
+                                 
+                                 
+                card_header(
+                    shinyWidgets::pickerInput(width = '400px',
+                                              options = pickerOptions(
+                                                `count-selected-text` = "{0} Categories Selected",
+                                                container = "body",
+                                                actionsBox = TRUE,
+                                              liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
+                                              multiple = T,
+                                              inputId = "selectInput",
+                                              label = "Category",
+                                              choices = c("Wildlife",
+                                                          "Erosion",
+                                                          "Frequently Flooded Areas",
+                                                          "Wetlands",
+                                                          "Geologically Hazardous Areas",
+                                                          "Landuse 2011",
+                                                          "Landuse 2019")
+                                              )
+                  # checkboxGroupButtons(
+                  #           inputId = "selectInput",
+                  #           label = "",
+                  #           choices = c("Wildlife","Erosion","Frequently Flooded"),
+                  #           status = "success"
+                  #         )
+                          
+                  ),
+                    
+                    
+                    
+                    
+                          bslib::accordion(
+                            id = "acc",
                             list(
                              uiOutput("wildlife_box"),
                              uiOutput("erosion_box"),

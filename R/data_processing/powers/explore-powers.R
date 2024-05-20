@@ -5,12 +5,21 @@ library(dplyr)
 library(data.table)
 library(lubridate)
 library(highcharter)
+library(readxl)
+
+# land cover
+Landcover_Crosswalk_Working2 <- read_excel("inst/Landcover_Crosswalk_Working2.xlsx", 
+                                           sheet = "Landcover_Crosswalk")
 
 # Discrete results
 params <-  data.table::fread("R/data_processing/powers/EIMDiscreteResults_2024Apr23_8034.csv")%>%
-  mutate(Param=Result_Parameter_Name,
+  transmute(Param=Result_Parameter_Name,
          Date=mdy(Field_Collection_Start_Date),
+         Year=lubridate::year(Date),
+         Units=Result_Value_Units,
+         Month=as.character(lubridate::month(Date,label = TRUE, abbr = TRUE)),
          Result=as.numeric(Result_Value)) 
+
 
 
 daily_water_temp <- 
@@ -40,12 +49,15 @@ combined_temp_data %>%
   count(is.na(Result))
 
 
+
+
+
 # water temp --------------------------------------------------------------
 
 temp_params <- params %>%
-  filter(Result_Parameter_Name=="Temperature, water") %>%
+  filter(Param=="Temperature, water") %>%
   group_by(Date) %>%
-  summarise(Result=mean(Result_Value,na.rm = TRUE)) %>%
+  summarise(Result=mean(Result,na.rm = TRUE)) %>%
   mutate(Month=lubridate::month(Date,label=TRUE,abbr = TRUE),
          Year=lubridate::year(Date),
          Year2=as.factor(Year)
@@ -71,6 +83,8 @@ regression_line_temp <- data.frame(
          ungroup() %>%
   distinct(Result,Year)
 
+
+temp_model <- broom::augment(lm(Result ~ Year, data = temp_params))
 
 
 # Yearly average ----------------------------------------------------------
@@ -128,8 +142,8 @@ by_year_scatter <- highcharter::hchart(
   hc_add_series(
     tooltip = list(enabled = FALSE),
     dashStyle = "Dash",
-    data = regression_line_temp,
-    hcaes(x = Year, y = Result),
+    data = temp_model,
+    hcaes(x = Year, y = .fitted),
     showInLegend = TRUE,
     name = "Regression",
     type = "line",
@@ -225,7 +239,7 @@ water_ranges <- water_temp %>%
 
 
 param_ranges <- params %>%
-  group_by(Param,Result_Value_Units)%>%
+  group_by(Param,Units)%>%
 summarise(Min_Date=range(Date)[1],
           Max_Date=range(Date)[2]) %>%
   distinct()

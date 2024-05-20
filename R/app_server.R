@@ -28,8 +28,13 @@ huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
 stations <- sf::st_read("inst/huc_merge/stations.shp",quiet = TRUE)
 
 # Wetlands
-wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE) %>%
-  select(WETLAND,Acrs_n_)
+
+wetlands <- 
+  sf::st_read("inst/shapefiles/columbia-wetlands.shp") %>%
+  st_transform(.,crs=4326)
+
+# wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE) %>%
+#   select(WETLAND,Acrs_n_)
 
 # Geologically Hazardous Areas
 geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp",quiet = TRUE) %>%
@@ -42,13 +47,19 @@ freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp",quiet = TRUE
 
 
 
-pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) %>%
-  st_transform(.,crs=4326)
+# pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) %>%
+#   st_transform(.,crs=4326)
 
 
 bmp_points <-  sf::st_read("inst/huc_merge/BMP_points.shp",quiet = TRUE) 
 bmp_lines <-  sf::st_read("inst/huc_merge/BMP_line.shp",quiet = TRUE)
 bmp_shape <-  sf::st_read("inst/huc_merge/BMP_shape.shp",quiet = TRUE)
+
+# TODO outside of app
+bmps <- bmp_points %>%
+  bind_rows(bmp_lines) %>%
+  bind_rows(bmp_shape)
+
 
 # Start server ------------------------------------------------------------
 
@@ -56,6 +67,11 @@ bmp_shape <-  sf::st_read("inst/huc_merge/BMP_shape.shp",quiet = TRUE)
 app_server <- function(input, output, session) {
   
 
+  
+
+  
+  
+# Year and Month filter for plots 
 rve_params <- reactive({
   
   params %>%
@@ -66,10 +82,6 @@ rve_params <- reactive({
   
  
     
-observe(print(input$monthRange))
-
-observe(print(head(rve_params())))
-
 # Do plot -----------------------------------------------------------------
 output$do_plot <- renderHighchart({
     
@@ -341,7 +353,7 @@ observe({
 output$acres_box <- renderUI({
 
   
-  if (nrow(filtered_huc()) > 1) {
+  if (nrow(filtered_huc()) >= 1) {
     chart <- highcharter::hchart(filtered_huc(),
    "column",
    hcaes(x = Name, y = HUC_Acres, group = Name))
@@ -366,9 +378,10 @@ output$acres_box <- renderUI({
 })
 
 
+
 # erosion box ------------------------------------------------------------
 
-output$erosion_box <- renderUI({ 
+erosion_panels <- reactive({
   
   erosion_vars <- huc12 %>%
     select(Severe_Ac_,Mod_Ac_Wtr,No_WtrEr_A) %>%
@@ -379,19 +392,26 @@ output$erosion_box <- renderUI({
   
   total_huc_acre <-  sum(filtered_huc()$HUC_Acres)
   
-  erosion_panels <- purrr::map2_dfr(
+ purrr::map2_dfr(
     as.character(erosion_vars),as.character(erosion_names),~
       data.frame(Erosion=.y,
-                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
-                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acre*100,2)}"))) 
+        Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+        Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acre*100,2)}"))) 
   
   
-  accordion_panel(
-    value = "Erosion",
-    title = "Erosion",
-    DT::datatable(erosion_panels,options = list(dom = 't'))
+})
+
+output$erosion_box <- renderUI({ 
+  
+  req("Erosion" %in% input$selectInput)
+  
+
+  card(id="erosion_id",
+  height = "250px",
+  card_header("Erosion"),
+  DT::datatable(erosion_panels(),options = list(dom = 't'))
   )
-  
+
   
   })
 
@@ -399,50 +419,44 @@ output$erosion_box <- renderUI({
 
 # wildlife box ------------------------------------------------------------
 
-
-
-output$wildlife_box <- renderUI({
+wildlife_panels <- reactive({
   
-  
-accord_names <- huc12 %>%
-  select(ends_with("Ac")) %>% 
+  accord_names <- huc12 %>%
+    select(ends_with("Ac")) %>% 
     names() %>% 
     str_subset(pattern = "geometry|Weg|Cliff",negate = TRUE)
   
-abv_names <- c("Elk","Mule Deer","WT Deer","Pheasant","Water Fowl","Chuckar","Sheep")
+  abv_names <- c("Elk","Mule Deer","WT Deer","Pheasant","Water Fowl","Chuckar","Sheep")
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  
+purrr::map2_dfr(
+    as.character(accord_names),as.character(abv_names),~
+      data.frame(Animal=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+  
+})
 
-total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+output$wildlife_box <- renderUI({
+  
+  req("Wildlife" %in% input$selectInput)
+  
+  card(id="wild_id",
+       height = "410px",
+       card_header("Wildlife"),
+       DT::datatable(wildlife_panels(),options = list(dom = 't'))
+  )
+  
 
- 
-
-wildlife_panels <- purrr::map2_dfr(
-  as.character(accord_names),as.character(abv_names),~
-    data.frame(Animal=.y,
-               Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
-               Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
-
-
-accordion_panel(title = "Wildlife",
-                open=TRUE,
-                value="Wildlife",
-                DT::datatable(wildlife_panels,options = list(dom = 't'))
-)
-
-# value_box(
-#   title = "Wildlife", value = "$5,000", ,
-#   theme = "warning", showcase = "Your Plot", showcase_layout = "left center",
-#   full_screen = TRUE, fill = TRUE, height = NULL
-# )
 
 
 })
 
 # geo box ------------------------------------------------------------
 
-
-
-output$geo_box <- renderUI({
-  
+geo_panels <- reactive({
   
   geo_names <- huc12 %>%
     select(starts_with("GEO")) %>% 
@@ -453,35 +467,34 @@ output$geo_box <- renderUI({
   
   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
   
- geo_panels <- purrr::map2_dfr(
+  purrr::map2_dfr(
     as.character(geo_names),as.character(abv_geo_names),~
-      data.frame(Severity=.y,
+    data.frame(Severity=.y,
                  Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
                  Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
   
   
-  accordion_panel(title = "Geologically Hazardous Areas",
-                  open=TRUE,
-                  value="Geologic",
-                  DT::datatable(geo_panels,options = list(dom = 't'))
-  )
+})
+
+output$geo_box <- renderUI({
   
-  # value_box(
-  #   title = "Wildlife", value = "$5,000", ,
-  #   theme = "warning", showcase = "Your Plot", showcase_layout = "left center",
-  #   full_screen = TRUE, fill = TRUE, height = NULL
-  # )
+  req("Geologically Hazardous Areas" %in% input$selectInput)
+
+ 
+ card(id="geo_id",
+      height = "350px",
+      card_header("Geologically Hazardous Areas"),
+      DT::datatable(geo_panels(),options = list(dom = 't'))
+      )
   
+
 })
 
 # wetlands box ------------------------------------------------------------
 
-
-
-output$wetlands_box <- renderUI({
+wet_panels <- reactive({
   
-  
- wet_names <- huc12 %>%
+  wet_names <- huc12 %>%
     select(Freshwater.Emergent.Wetland, Freshwater.Forested.Shrub.Wetland,
            Freshwater.Pond,Lake,Other,Riverine) %>% 
     names() %>% 
@@ -492,28 +505,37 @@ output$wetlands_box <- renderUI({
   
   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
   
-  geo_panels <- purrr::map2_dfr(
+  purrr::map2_dfr(
     as.character(wet_names),as.character(abv_wet_names),~
-      data.frame(Type=.y,
-                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
-                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
+    data.frame(Type=.y,
+    Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+    Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
   
+   
+})
+
+output$wetlands_box <- renderUI({
   
-  accordion_panel(title = "Wetlands",
-                  open=TRUE,
-                  value="Wetlands",
-                  DT::datatable(geo_panels,options = list(dom = 't'))
+  req("Wetlands" %in% input$selectInput)
+
+  card(id="wet_id",
+       height = "380px",
+       card_header("Wetlands"),
+       DT::datatable(wet_panels(),options = list(dom = 't'))
   )
+  
+  # accordion_panel(title = "Wetlands",
+  #                 open=TRUE,
+  #                 value="Wetlands",
+  #                 DT::datatable(geo_panels,options = list(dom = 't'))
+  # )
   
 })
 
 
 #land 19 box ------------------------------------------------------------
 
-
-
-output$land19_box <- renderUI({
-  
+land19_panels <- reactive({
   
   land19_names <- huc12 %>%
     select(ends_with("_19")) %>% 
@@ -521,31 +543,37 @@ output$land19_box <- renderUI({
     str_subset(pattern = "geometry",negate = TRUE)
   
   abv_land19_names <- c("Dryland Crops", "Cultivated Crops",
-                     "Rangeland","Irrigated Crops")
+                        "Rangeland","Irrigated Crops")
   
   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
-  
-  land19_panels <- purrr::map2_dfr(
+
+  purrr::map2_dfr(
     as.character(land19_names),as.character(abv_land19_names),~
       data.frame(Type=.y,
                  Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
                  Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
   
+})
+
+
+output$land19_box <- renderUI({
   
-  accordion_panel(title = "Agriculture Land Use 2019",
-                  open=TRUE,
-                  value="land2019",
-                  DT::datatable(land19_panels,options = list(dom = 't'))
+  req("Landuse 2019" %in% input$selectInput)
+  
+  card(id = "ag19_id",
+       height = "350px",
+       card_header("Agriculture Land Use 2019"),
+       card_body(
+         DT::datatable(land19_panels(),options = list(dom = 't',rownames=FALSE))
+       )
   )
+
   
 })
 
 #land 11 box ------------------------------------------------------------
 
-
-
-output$land11_box <- renderUI({
-  
+land11_panels <-  reactive({
   
   land11_names <- huc12 %>%
     select("Crops...Dryland","Rangeland","Crops...Irrigated") %>% 
@@ -556,69 +584,120 @@ output$land11_box <- renderUI({
   
   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
   
-  land19_panels <- purrr::map2_dfr(
+  purrr::map2_dfr(
     as.character(land11_names),as.character(abv_land11_names),~
       data.frame(Type=.y,
                  Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
                  Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acrew*100,2)}"))) 
   
   
-  accordion_panel(title = "Agriculture Land Use 2011",
-                  open=TRUE,
-                  value="land2011",
-                  DT::datatable(
-                    land19_panels,
-                    options = list(dom = 't',rownames = FALSE)
-                    )
+})
+
+output$land11_box <- renderUI({
+  
+  req("Landuse 2011" %in% input$selectInput)
+  
+
+  card(id = "ag11_id",
+       height = "300px",
+       card_header("Agriculture Land Use 2011"),
+       card_body(
+         DT::datatable(land11_panels(),options = list(dom = 't',rownames=FALSE))
+         ))
+  
+  
+  
+})
+
+
+output$bmps_table <- renderUI({
+  
+    
+req(nrow(filtered_huc())>=1)
+
+  total_bmps <- bmps %>%
+  dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
+    st_drop_geometry() %>%
+    group_by(HUC12) %>%
+    tally() %>%
+    ungroup()
+
+  
+ # bmp_count=ifelse(nrow(total_bmps)>1,0,sum(total_bmps)))
+  
+  value_box(
+    title = "BMPs",
+    value = sum(total_bmps$n[!is.na(total_bmps$HUC12)]),
+    showcase = bsicons::bs_icon("hammer"),
+    theme = "primary"
   )
   
 })
 
+
 # flood box ------------------------------------------------------------
 
-
-
-output$flood_box <- renderUI({
-  
+flood_panels <- reactive({
   
   accord_names <- huc12 %>%
     select(ends_with("FLDACRE")) %>% 
     names() %>% 
     str_subset(pattern = "geometry",negate = TRUE)
   
- 
   
   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
   
-  
-  
-  flood_panels <- data.frame(
+  data.frame(
     Acres = glue::glue("{scales::comma(round(sum(filtered_huc()[['FLDACRE']],na.rm=TRUE), 0))}"),
-    Percent = glue::glue("% {round(sum(filtered_huc()[['FLDACRE']],na.rm=TRUE)/total_huc_acrew*100,2)}"))
+    Percent = glue::glue("% {round(sum(filtered_huc()[['FLDACRE']],na.rm=TRUE)/total_huc_acrew*100,2)}")
+    )
+  
+  
+})
+
+output$flood_box <- renderUI({
+  
+  req("Frequently Flooded Areas" %in% input$selectInput)
 
   
   
-  accordion_panel(
-    value = "Frequently Flooded",
-    title = "Frequently Flooded",
-    DT::datatable(flood_panels,options = list(dom = 't'))
-  )
+  card(id = "flood_id",
+       height = "200px",
+       card_header("Frequently Flooded Areas"),
+       card_body(DT::datatable(flood_panels(),options = list(dom = 't')))
+       )
 
 })
 
 
 # accordion ---------------------------------------------------------------
 
+# observeEvent({
+#   
+#   if("Frequently Flooded" %in% input$selectInput) {
+#     shinyjs::show("flood_id")
+#   } else {
+#     shinyjs::hide("flood_id")
+#   }
+# 
+# })
+
 accordion_state <- reactiveVal(NULL)
 
 
-observeEvent(input$type_checkbox, {
-  
-bslib::accordion_panel_open(id="acc", 
-                    values= input$type_checkbox,
-                    session=session)
-
-})
+# observeEvent(input$type_checkbox, {
+#   
+# # bslib::accordion_panel_update(
+# #                     id="acc", 
+# #                     target = "Frequently Flooded",
+# #                     open=TRUE,
+# #                     session = get_current_session())
+#   
+# accordion_panel_remove("acc", 
+#                        target = "Frequently Flooded",
+#                        session = session)  
+# 
+# })
 
 
 # Leaflet -----------------------------------------------------------------
@@ -663,24 +742,43 @@ observeEvent(input$leafmap_shape_click,{
  
   #print(watersheds_selected)
   print(clicked_HUC())
+  print(input$watersheds)
+  
   
   # capture the info of the clicked polygon
   click <- input$leafmap_shape_click
   # subset to clicked
   clicked_HUC_data <- unique(as.character(huc12$Name[huc12$Name == click$id]))
 
+  selected_update <- c(input$watersheds,clicked_HUC())
+  
+  # # Check if the name already exists in clicked_HUC
+  # if (clicked_HUC_data  %in% clicked_HUC()) {
+  #   # If it exists, remove it from clicked_HUC
+  #   clicked_HUC(clicked_HUC()[clicked_HUC() !=  clicked_HUC_data])
+  # } else {
+  #   # If it doesn't exist, append it to clicked_HUC
+  #   # Store in reactive val
+  #   clicked_HUC(c(clicked_HUC(), clicked_HUC_data))
+  # }
+  # 
+  # 
+  
   # Check if the name already exists in clicked_HUC
-  if (clicked_HUC_data  %in% clicked_HUC()) {
+  if (clicked_HUC_data  %in% selected_update) {
     # If it exists, remove it from clicked_HUC
-    clicked_HUC(clicked_HUC()[clicked_HUC() !=  clicked_HUC_data])
+    clicked_HUC(selected_update[selected_update !=  clicked_HUC_data])
   } else {
     # If it doesn't exist, append it to clicked_HUC
     # Store in reactive val
-    clicked_HUC(c(clicked_HUC(), clicked_HUC_data))
+    clicked_HUC(c(clicked_HUC_data, clicked_HUC()))
   }
+  
 
   updatePickerInput(session, "watersheds", selected = clicked_HUC())
  
+
+  
   })
   
   
@@ -743,9 +841,14 @@ observe({
  # print(filtered_huc())
   
   map <- leafletProxy("leafmap") %>%
-    setView(lat = 46.29929,lng = -118.02250,zoom = 9) %>%
+    setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
     clearShapes() %>%
     clearMarkers() %>%
+    # addPolygons(data=wetlands,
+    #             group="wetlands",
+    #             label = ~ACRES,
+    #             popup = ~ popupTable(wetlands)
+    #             ) %>%
     addPolygons(data=huc12,
                 group="watersheds",
                 layerId = huc12$Name,
@@ -801,12 +904,12 @@ observe({
                      label = ~CntrctN)%>%
     #addSearchGoogle() %>%
     addLayersControl(
-      overlayGroups = c("Waterways","BMP","watersheds","WQStation"),
+      overlayGroups = c("Waterways","BMP","watersheds","WQStation","wetlands"),
       baseGroups = c("Topo","Imagery", "Dark", "Street")
     ) %>%
     leaflet.extras::addFullscreenControl() %>%
     leafem::addMouseCoordinates() %>%
-    hideGroup(c("Waterways","WQStation","BMP")) %>%
+    hideGroup(c("Waterways","WQStation","BMP","wetlands")) %>%
     addPolygons(data=filtered_huc(),
                 group="watersheds",
                 layerId = filtered_huc()$Name,
@@ -821,14 +924,14 @@ observe({
                   bringToFront = TRUE,
                   sendToBack = TRUE),  
                 # # Add label info when mouseover
-                label = ~htmltools::HTML(paste(filtered_huc()$Name)),
+                label=paste0("",filtered_huc()$Name),
                 labelOptions = labelOptions(
                   style = list("font-weight" = "normal", padding = "3px 8px"),
                   textsize = "14px",
-                  direction = "auto")) 
+                  direction = "auto")
+                ) 
     
-  
-  
+ 
   bounds <- filtered_huc() %>% 
     st_bbox() %>% 
     as.character()
@@ -845,8 +948,11 @@ observe({
      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4])
      #flyToBounds(xmin,ymin,xmax,ymax)
 
-  
+   #print(filtered_huc())
+   
 })
+
+
 
 } #================ End Server===========================================-
 
