@@ -23,13 +23,15 @@ suppressMessages(library(shinydashboard,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(bslib,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(shinyjs,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(shinydashboardPlus,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(mapview,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(htmlwidgets,quietly = TRUE,warn.conflicts = FALSE))
 # Highcharts --------------------------------------------------------------
 
-suppressWarnings(
-  suppressMessages(
-    source("../Tucannon/R/data_processing/powers/explore-powers.R")
-    )
-  )
+# suppressWarnings(
+#   suppressMessages(
+#     source("../Tucannon/R/data_processing/powers/explore-powers.R")
+#     )
+#   )
 
 
 
@@ -78,6 +80,12 @@ app_ui <- function(request) {
     # Leave this function for adding external resources
     golem_add_external_resources(),
     useShinyjs(), 
+    tags$head(
+      tags$script(src = "https://code.highcharts.com/highcharts.js"),
+      tags$script(src = "https://code.highcharts.com/modules/exporting.js"),
+      tags$script(src ="R/www/downloadLeafletMap.js")
+      
+    ),
     # Your application UI logic
     bslib::page_navbar(
       id = "navbar_items_id",
@@ -117,9 +125,10 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                          #width = 1/2,
                                          #height = 300,
                                          card(full_screen = TRUE, card_header(""), card_body(by_year)),
-                                         card(full_screen = TRUE, card_header(""), card_body(by_year_box)),
+                                         card(full_screen = TRUE, card_header(""), card_body(highchartOutput("by_year_box"))),
                                          card(full_screen = TRUE, card_header(""), card_body(by_summer)),
-                                         card(full_screen = TRUE, card_header(""), card_body(by_year_scatter)),
+                                         card(full_screen = TRUE, card_header(""), 
+                                              card_body(highchartOutput("by_year_scatter"))),
                                          card(full_screen = TRUE, card_header(""), card_body(by_month))
                                        ) #-----end temperature card row 
                                        
@@ -148,6 +157,11 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                      card_body(highchartOutput("orthophos_plot")),
                     ))
           ), 
+bslib::nav_panel(title = "Table",
+
+                  DT::dataTableOutput("params_table")
+                 ),
+                
           bslib::nav_panel(title = "Realtime Flows",
             card(
                              full_screen = TRUE,
@@ -156,6 +170,7 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                              status = "info",
                              width = "100%",
                              card_body(htmlOutput("iframe_starbuck")),
+                             card_body(htmlOutput("iframe_ecymaps")),
                              card_header("Tucannon-Marengo 35B150"),
                              card_body(htmlOutput("iframe_marengo"))
                              )
@@ -251,6 +266,7 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                          full_screen = TRUE,
                          style = "resize:both;",
                          #card_header(textOutput("selectedHUC_name")),
+                         card_header(downloadButton(outputId = "dl", label = "Download Map")),
                          card_body(leafletOutput("leafmap"))
                          ), #----- End leaflet map card-----
                       

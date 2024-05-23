@@ -17,10 +17,20 @@
 # Marengo
 # https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationDetails?sta=35B150
 
+suppressWarnings(
+  suppressMessages(
+    source("../Tucannon/R/data_processing/powers/explore-powers.R")
+  )
+)
+
+
+
 huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
   select(HUC12) %>%
   left_join(read.csv("inst/huc_merge/HUC12_reworked2.csv") %>% 
               mutate(HUC12=as.character(HUC12)),by="HUC12")
+
+names_huc12 <- names(huc12)
 
 # huc12 <- sf::st_read("../../../humme/Downloads/Layers/HUC12_Metrics_All.shp") %>%
 #   st_transform(.,crs=4326)
@@ -31,7 +41,7 @@ stations <- sf::st_read("inst/huc_merge/stations.shp",quiet = TRUE)
 
 wetlands <- 
   sf::st_read("inst/shapefiles/columbia-wetlands.shp") %>%
-  st_transform(.,crs=4326)
+  sf::st_transform(.,crs=4326)
 
 # wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE) %>%
 #   select(WETLAND,Acrs_n_)
@@ -80,7 +90,16 @@ rve_params <- reactive({
 
   })
   
- 
+ rve_bmps <- reactive({
+   
+   bmps %>%
+     dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
+     select(HUC12,
+            Program=program,
+            Project=project,
+            Year=instll_)
+   
+ })
     
 # Do plot -----------------------------------------------------------------
 output$do_plot <- renderHighchart({
@@ -94,7 +113,10 @@ output$do_plot <- renderHighchart({
  #  )
  # 
  
- 
+  req(input$navset_tabs_id == "Dissolved Oxygen")
+  
+ req(nrow(rve_params() %>% 
+            filter(Param == "Dissolved Oxygen"))>=1)
   
  do_model <- broom::augment(
    lm(Result ~ Date, data = rve_params() %>% 
@@ -103,7 +125,6 @@ output$do_plot <- renderHighchart({
  
  
  
-  
   highcharter::hchart(
     rve_params() %>%
       filter(Param == "Dissolved Oxygen"),
@@ -136,24 +157,171 @@ output$do_plot <- renderHighchart({
                             }"))  %>%
       hc_yAxis(title = list(text = "Dissolved Oxygen mg/L")) %>%
       hc_title(text = "Powers Road") %>%
-     hc_add_series(
-       data =  do_model,
-       hcaes(x = Date, y = .fitted),
-       showInLegend = TRUE,
-       name = "Regression",
-       type = "line",
-       color = "black"
-     ) %>%
-    hc_responsive(enabled = TRUE)
+    hc_add_series(
+      tooltip = list(enabled = FALSE),
+      dashStyle = "Dash",
+      data = do_model,
+      hcaes(x = Date, y = .fitted),
+      showInLegend = TRUE,
+      name = "Regression",
+      type = "line",
+      color = "black"
+    ) %>%
+    hc_responsive(enabled = TRUE)%>%
+    hc_exporting(enabled = TRUE, 
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 )))) %>%
+    hc_chart(
+      backgroundColor = "#FFFFFF" 
+    )
     
     
     
     
   })
+
+ 
+
+# Reactive Temperature ----------------------------------------------------
+
+ temp_params <- reactive({ 
+   
+   
+   rve_params() %>%
+   filter(Param=="Temperature, water") %>%
+   group_by(Date) %>%
+   summarise(Result=mean(Result,na.rm = TRUE)) %>%
+   mutate(Month=lubridate::month(Date,label=TRUE,abbr = TRUE),
+          Year=lubridate::year(Date)
+   ) %>%
+   arrange(Year,Month) %>%
+   filter(Result >0) %>%
+   ungroup()
+   
+ 
+})
+ 
+
+# Temp Table --------------------------------------------------------------
+
+ 
+ 
+ output$params_table <- DT::renderDT({
+ 
+
+   req(nrow(rve_params()>=1))
+   
+   DT::datatable(height = 900,
+     data=rve_params(),
+     extensions = 'Buttons',
+     filter = 'top',
+     options = list(
+       lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+       dom = 'lfrtipB',
+       buttons = c('copy', 'csv', 'excel')
+     )
+   ) 
+   
+ 
+ })
+# Temp boxplot ------------------------------------------------------------
+ output$by_year_box <- renderHighchart({
+   
+   req(input$navset_tabs_id == "Temperature")
+   req(nrow(temp_params()>=1))
+
+
+ 
+   hcboxplot(x=temp_params()$Result,
+                          var = temp_params()$Year,
+                          outliers = FALSE,name="Degrees C")%>% 
+   hc_chart(type = "column")%>%
+   hc_title(text = "Quartiles")%>%
+   hc_rangeSelector(enabled = FALSE)%>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  )))) %>%
+     hc_chart(
+       backgroundColor = "#FFFFFF" 
+     ) 
+ 
+ })
+ 
+ output$by_year_scatter <- renderHighchart({
+ 
+   
+   req(input$navset_tabs_id == "Temperature")
+   
+   req(nrow(temp_params()>=2))
   
+  temp_model <- broom::augment(lm(Result ~ Year, data = temp_params()))
+   
+   
+  highcharter::hchart(
+   temp_params() %>%
+     group_by(Year)%>%
+     summarise(Result=round(mean(Result,na.rm = TRUE),2)) %>%
+     ungroup(),
+   type="scatter",
+   hcaes(x = Year, y = Result),
+   name = "Degrees C",
+   showInLegend = TRUE
+ )%>%
+   hc_add_series(
+     tooltip = list(enabled = FALSE),
+     dashStyle = "Dash",
+     data = temp_model,
+     hcaes(x = Year, y = .fitted),
+     showInLegend = TRUE,
+     name = "Regression",
+     type = "line",
+     color = "black"
+   ) %>%
+   hc_plotOptions(line = list(
+     marker = list(
+       enabled = FALSE
+     )
+   ))%>%
+   hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Year +
+                            ' <br>Result: ' + this.point.Result +' Deg C'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+   hc_yAxis(title = list(text = "Degrees C")) %>%
+   hc_title(text = "Annual Average (scatter)") %>%
+    hc_exporting(enabled = TRUE, 
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 )))) %>%
+    hc_chart(
+      backgroundColor = "#FFFFFF" 
+    )
+ 
+  })
+ 
+ 
 # Phosphorus --------------------------------------------------------------
 output$phos_plot <- renderHighchart({
 
+  req(input$navset_tabs_id == "Phosphorus")
+  
   phos <- rve_params() %>%
   filter(Param=="Total Phosphorus") %>%
   group_by(Date) %>%
@@ -203,12 +371,24 @@ phos %>%
                       }
                             }"))%>%
   hc_yAxis(title = list(text = "mg/L")) %>%
-  hc_title(text = "Total Phosphorus")
+  hc_title(text = "Total Phosphorus")%>%
+  hc_exporting(enabled = TRUE, 
+               buttons = list(contextButton = list(menuItems = list(
+                 list(
+                   textKey = "downloadPNG",
+                   onclick = JS("function() { this.exportChart(); }")
+                 )
+               )))) %>%
+  hc_chart(
+    backgroundColor = "#FFFFFF" 
+  )
 
 })
 
 # Phosphorus --------------------------------------------------------------
 output$orthophos_plot <- renderHighchart({
+  
+  req(input$navset_tabs_id == "Phosphorus")
   
   ophos <- rve_params() %>%
     filter(Param=="Ortho-Phosphate") %>%
@@ -256,7 +436,17 @@ output$orthophos_plot <- renderHighchart({
                       }
                             }"))%>%
     hc_yAxis(title = list(text = "mg/L")) %>%
-    hc_title(text = "Ortho-Phosphate")
+    hc_title(text = "Ortho-Phosphate")%>%
+    hc_exporting(enabled = TRUE, 
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 )))) %>%
+    hc_chart(
+      backgroundColor = "#FFFFFF" 
+    )
   
 })
 
@@ -266,6 +456,9 @@ output$orthophos_plot <- renderHighchart({
 ## Starbuck Flow ----------------------------------------------------------
 
 output$iframe_starbuck <- renderUI({
+  
+  req(input$navset_tabs_id == "Realtime Flows")
+  
   iframe_tag <- tags$iframe(
     src = "https://dashboard.waterdata.usgs.gov/api/gwis/2.1/service/site?agencyCode=USGS&siteNumber=13344500&open=151971",
     style='width:100vw;height:100vh;'
@@ -276,6 +469,9 @@ output$iframe_starbuck <- renderUI({
 ## Marengo Flow ----------------------------------------------------------
 
 output$iframe_marengo <- renderUI({
+  
+  req(input$navset_tabs_id == "Realtime Flows")
+  
   iframe_tag <- tags$iframe(
     src = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/35B150/35B150_DSG_SD.PNG",  
     style='width:90vw;height:100vh;'
@@ -286,6 +482,9 @@ output$iframe_marengo <- renderUI({
 ## Ecy Map ----------------------------------------------------------
 
 output$iframe_ecymaps <- renderUI({
+  
+  req(input$navset_tabs_id == "Realtime Flows")
+  
   iframe_tag <- tags$iframe(
     src = "https://apps.ecology.wa.gov/continuousflowandwq/",  
     style='width:100vw;height:100vh;'
@@ -308,6 +507,9 @@ output$iframe_ctuir_geo <- renderUI({
 ## CTUIR2  ----------------------------------------------------------
 
 output$iframe_ctuir_rest <- renderUI({
+  
+  # TODO req tab ctuir
+  
   iframe_tag <- tags$iframe(
     src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5",  
     style='width:95vw;height:90vh;'
@@ -370,7 +572,7 @@ output$acres_box <- renderUI({
     p("Tucannon Watershed"),
     chart,
     full_screen = TRUE,
-    theme = "info"
+    theme = "success"
   )
   
   
@@ -414,6 +616,8 @@ output$erosion_box <- renderUI({
 
   
   })
+
+
 
 
 
@@ -702,23 +906,24 @@ accordion_state <- reactiveVal(NULL)
 
 # Leaflet -----------------------------------------------------------------
 
-output$leafmap <- renderLeaflet({
+foundational_map <- reactive({
   
   # Hydrography layer options 
-  opt <-
-    leaflet::WMSTileOptions(
-      format = "image/png32",
-      version = "1.3.0",
-      minZoom = 3,
-      maxZoom = 16,
-      transparent = TRUE
-    )
-  
+
   leaflet(options = leafletOptions(
     attributionControl=FALSE)) %>%
     addTiles() %>%
     setView(lat = 46.29929,lng = -118.02250,zoom = 9) %>%
-    addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",options = opt,group="Waterways") %>%
+    addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",
+                options = leaflet::WMSTileOptions(
+                  format = "image/png32",
+                  version = "1.3.0",
+                  minZoom = 3,
+                  maxZoom = 16,
+                  transparent = TRUE
+                ),
+                
+                group="Waterways") %>%
     addProviderTiles("Esri.WorldImagery", group="Imagery") %>%
     addProviderTiles("CartoDB.DarkMatter", group="Dark") %>%
     addProviderTiles("Esri.NatGeoWorldMap", group="Topo") %>%
@@ -729,6 +934,27 @@ output$leafmap <- renderLeaflet({
 
 })
   
+
+output$leafmap <- renderLeaflet({
+  
+  foundational_map()
+  
+})
+
+
+
+user_created_map <- reactive({
+  
+  # call the foundational Leaflet map
+  foundational_map() %>%
+    
+    # store the view based on UI
+    setView( lng = input$map_center$lng
+             ,lat = input$map_center$lat
+             ,zoom = input$map_zoom
+    )
+  
+})
 
 
 # map click ---------------------------------------------------------------
@@ -857,8 +1083,8 @@ observe({
                 highlight = highlightOptions(
                   weight = 3,
                   fillOpacity = 0.2,
-                  color = "purple",
-                  fillColor = "#6a0d83",
+                  color = "#545c45",
+                  fillColor = "#2c3e50",
                   opacity = 1.0,
                   bringToFront = TRUE,
                   sendToBack = TRUE),  
@@ -952,6 +1178,38 @@ observe({
    
 })
 
+
+
+# download map ------------------------------------------------------------
+
+
+# output$dl <- downloadHandler(
+#   
+#   filename = paste0( Sys.Date()
+#                      , "_customLeafletmap"
+#                      , ".html"
+#   ),
+#   content = function(file){
+#     
+# saveWidget(
+#       widget = user_created_map(),
+#       file = file
+#     )
+# 
+#   } 
+# ) 
+
+
+observeEvent(input$dl, {
+  map_html <- user_created_map() %>% 
+  htmlwidgets::saveWidget(file = "", selfcontained = FALSE)
+  session$sendCustomMessage(
+    "downloadLeafletMap",
+    list(
+      mapData = map_html
+    )
+  )
+})
 
 
 } #================ End Server===========================================-
