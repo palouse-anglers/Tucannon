@@ -40,7 +40,7 @@ stations <- sf::st_read("inst/huc_merge/stations.shp",quiet = TRUE)
 # Wetlands
 
 wetlands <- 
-  sf::st_read("inst/shapefiles/columbia-wetlands.shp") %>%
+  sf::st_read("inst/shapefiles/columbia-wetlands.shp",quiet=TRUE) %>%
   sf::st_transform(.,crs=4326)
 
 # wetlands <- sf::st_read("inst/huc_merge/wetlands_huc12_merge.shp",quiet = TRUE) %>%
@@ -71,6 +71,13 @@ bmps <- bmp_points %>%
   bind_rows(bmp_shape)
 
 
+# Marengo
+marengo_water <- data.table::fread("R/data_processing/marengo_water.csv") %>%
+  mutate(Date=lubridate::ymd(Date))
+
+marengo_stage <- data.table::fread("R/data_processing/marengo_stage.csv")%>%
+  mutate(Date=lubridate::ymd(Date))
+
 # Start server ------------------------------------------------------------
 
 
@@ -90,6 +97,7 @@ rve_params <- reactive({
 
   })
   
+# reactive BMPs
  rve_bmps <- reactive({
    
    bmps %>%
@@ -100,7 +108,68 @@ rve_params <- reactive({
             Year=instll_)
    
  })
+ 
     
+rve_mngo_water <- reactive({
+  
+  marengo_water %>%
+    dplyr::filter(year(Date) >= input$dateRange[1] & year(Date) <= input$dateRange[2]) %>% 
+    dplyr::filter(Month %in% input$monthRange)
+  
+})
+
+rve_mngo_stage <- reactive({
+  
+  marengo_stage %>%
+    dplyr::filter(year(Date) >= input$dateRange[1] & year(Date) <= input$dateRange[2]) %>% 
+    dplyr::filter(Month %in% input$monthRange)
+  
+})
+ 
+
+# Marengo Water Temp ------------------------------------------------------
+
+output$mrngo_water_plot <- renderHighchart({
+  
+  req(length(input$monthRange)>=1)
+  req(nrow(rve_mngo_water()>1))
+  
+  
+  mngo_model <- broom::augment(
+    lm(Result ~ Date, data = rve_mngo_water()
+    ))
+  
+  
+  hchart(
+    rve_mngo_water(), "line", 
+    hcaes(x = Date, y = Result)
+  )%>%
+    hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'TMDL') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +'deg C'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))  %>%
+    hc_yAxis(title = list(text = "Temperature")) %>%
+    hc_title(text = "35B150-Marengo Temperature")%>%
+    hc_add_series(
+      tooltip = list(enabled = FALSE),
+      dashStyle = "Dash",
+      data = mngo_model,
+      hcaes(x = Date, y = .fitted),
+      showInLegend = TRUE,
+      name = "Regression",
+      type = "line",
+      color = "black"
+    )
+  
+})
+
 # Do plot -----------------------------------------------------------------
 output$do_plot <- renderHighchart({
     
@@ -113,7 +182,7 @@ output$do_plot <- renderHighchart({
  #  )
  # 
  
-  req(input$navset_tabs_id == "Dissolved Oxygen")
+  #req(input$navset_tabs_id == "Dissolved Oxygen")
   
  req(nrow(rve_params() %>% 
             filter(Param == "Dissolved Oxygen"))>=1)
@@ -1200,16 +1269,16 @@ observe({
 # ) 
 
 
-observeEvent(input$dl, {
-  map_html <- user_created_map() %>% 
-  htmlwidgets::saveWidget(file = "", selfcontained = FALSE)
-  session$sendCustomMessage(
-    "downloadLeafletMap",
-    list(
-      mapData = map_html
-    )
-  )
-})
+# observeEvent(input$dl, {
+#   map_html <- user_created_map() %>% 
+#   htmlwidgets::saveWidget(file = "", selfcontained = FALSE)
+#   session$sendCustomMessage(
+#     "downloadLeafletMap",
+#     list(
+#       mapData = map_html
+#     )
+#   )
+# })
 
 
 } #================ End Server===========================================-

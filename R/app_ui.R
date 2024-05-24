@@ -133,6 +133,22 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                        ) #-----end temperature card row 
                                        
                       ),
+                                   
+                      
+        bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
+                         layout_column_wrap(
+                           card(
+                             full_screen = TRUE,
+                             style = "resize:both;",
+                             card_header("Temperature"),
+                             card_body(highchartOutput("mrngo_water_plot"))
+                           )
+                         )
+                         ),
+                         
+                         
+                         
+                         #-------Start DO Tab----              
         bslib::nav_panel(title = "Dissolved Oxygen",#-------Start DO Tab----
                          layout_column_wrap(
                            card(
