@@ -68,7 +68,12 @@ bmp_shape <-  sf::st_read("inst/huc_merge/BMP_shape.shp",quiet = TRUE)
 # TODO outside of app
 bmps <- bmp_points %>%
   bind_rows(bmp_lines) %>%
-  bind_rows(bmp_shape)
+  bind_rows(bmp_shape) %>%
+  mutate(active=replace_na(ifelse(activty=="ACTIVE","Yes","No"),"No"),
+           project=case_when(
+           str_detect(project,"METER") ~ "FLOW METER",
+           str_detect(project,"DEVELOPMENT") ~ "WATER DEVELOPMENT",
+         TRUE ~ project))
 
 
 # Marengo
@@ -102,10 +107,12 @@ rve_params <- reactive({
    
    bmps %>%
      dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
-     select(HUC12,
+     dplyr::filter(active %in% input$bmps_active) %>%
+       select(HUC12,
             Program=program,
             Project=project,
-            Year=instll_)
+            Year=instll_,
+            Active=active)
    
  })
  
@@ -166,10 +173,67 @@ output$mrngo_water_plot <- renderHighchart({
       name = "Regression",
       type = "line",
       color = "black"
-    )
+    )%>%
+    hc_exporting(enabled = TRUE, 
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 )))) 
   
 })
 
+# marengo stage plot ------------------------------------------------------
+
+
+output$mrngo_stage_plot <- renderHighchart({
+  
+  req(length(input$monthRange)>=1)
+  req(nrow(rve_mngo_water()>1))
+  req(input$navset_tabs_id == "Marengo")
+  
+  mngo_smodel <- broom::augment(
+    lm(Result ~ Date, data = rve_mngo_stage()
+    ))
+  
+  
+  hchart(
+    rve_mngo_stage(), "line", 
+    hcaes(x = Date, y = Result)
+  )%>%
+    hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'TMDL') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +'deg C'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))  %>%
+    hc_yAxis(title = list(text = "Stage Ht. (ft)")) %>%
+    hc_title(text = "35B150-Marengo Stage Ht. (ft)")%>%
+    hc_add_series(
+      tooltip = list(enabled = FALSE),
+      dashStyle = "Dash",
+      data = mngo_smodel,
+      hcaes(x = Date, y = .fitted),
+      showInLegend = TRUE,
+      name = "Regression",
+      type = "line",
+      color = "black"
+    )%>%
+    hc_exporting(enabled = TRUE, 
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 )))) 
+  
+})
 # Do plot -----------------------------------------------------------------
 output$do_plot <- renderHighchart({
     
@@ -320,7 +384,14 @@ output$do_plot <- renderHighchart({
                   )))) %>%
      hc_chart(
        backgroundColor = "#FFFFFF" 
-     ) 
+     ) %>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  ))))
  
  })
  
@@ -837,7 +908,7 @@ output$land19_box <- renderUI({
        height = "350px",
        card_header("Agriculture Land Use 2019"),
        card_body(
-         DT::datatable(land19_panels(),options = list(dom = 't',rownames=FALSE))
+         DT::datatable(land19_panels(),options = list(dom = 't'),rownames=FALSE)
        )
   )
 
@@ -875,21 +946,43 @@ output$land11_box <- renderUI({
        height = "300px",
        card_header("Agriculture Land Use 2011"),
        card_body(
-         DT::datatable(land11_panels(),options = list(dom = 't',rownames=FALSE))
+         DT::datatable(land11_panels(),options = list(dom = 't'),rownames=FALSE)
          ))
   
   
   
 })
 
-
 output$bmps_table <- renderUI({
+  
+  req("BMPs" %in% input$selectInput)
+  
+  
+  card(id = "bmps",
+       height = "300px",
+       card_header("BMPs"),
+       card_body(
+         DT::datatable(rve_bmps() %>%
+                         st_drop_geometry() %>%
+                         group_by(Project) %>%
+                         tally(),options = list(dom = 't'),rownames=FALSE))
+       )
+  
+  
+  
+})
+
+
+# bmps box ----------------------------------------------------------------
+
+
+
+output$bmps_box <- renderUI({
   
     
 req(nrow(filtered_huc())>=1)
 
-  total_bmps <- bmps %>%
-  dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
+  total_bmps <- rve_bmps() %>%
     st_drop_geometry() %>%
     group_by(HUC12) %>%
     tally() %>%
@@ -899,7 +992,7 @@ req(nrow(filtered_huc())>=1)
  # bmp_count=ifelse(nrow(total_bmps)>1,0,sum(total_bmps)))
   
   value_box(
-    title = "BMPs",
+    title = "Tucannon Watershed BMPs",
     value = sum(total_bmps$n[!is.na(total_bmps$HUC12)]),
     showcase = bsicons::bs_icon("hammer"),
     theme = "primary"
@@ -908,6 +1001,49 @@ req(nrow(filtered_huc())>=1)
 })
 
 
+# bmps table --------------------------------------------------------------
+
+# 
+# output$bmps_plot <- renderUI({
+#   
+# 
+#   req(nrow(rve_bmps()>1))
+#   
+#     # DT::datatable(bmps %>%
+#     #               dplyr::filter(HUC12 %in% filtered_huc()$HUC12),
+#     #               options = list(dom = 't')
+#     #    
+#   
+#   highcharter::hchart(
+#     rve_bmps()  %>%
+#       st_drop_geometry() %>%
+#       group_by(Project) %>%
+#       tally(),
+#     "column",
+#     hcaes(x = Project, y = n))%>%
+#     hc_exporting(enabled = TRUE, 
+#                  buttons = list(contextButton = list(menuItems = list(
+#                    list(
+#                      textKey = "downloadPNG",
+#                      onclick = JS("function() { this.exportChart(); }")
+#                    )
+#                  ))))%>%
+#     hc_tooltip(formatter = JS("function(){
+#   
+#   if (this.series.name !== 'TMDL') {
+#                             return (
+#                             ' <br>Project: ' + this.point.Project +
+#                             ' <br>Count: ' + this.point.Count +''
+#                             );
+#   } else {
+#                         return false;
+#                       }
+#                             }")) 
+#  
+# 
+# 
+#   
+# })
 # flood box ------------------------------------------------------------
 
 flood_panels <- reactive({
@@ -933,9 +1069,8 @@ output$flood_box <- renderUI({
   req("Frequently Flooded Areas" %in% input$selectInput)
 
   
-  
   card(id = "flood_id",
-       height = "200px",
+       height = "150px",
        card_header("Frequently Flooded Areas"),
        card_body(DT::datatable(flood_panels(),options = list(dom = 't')))
        )
@@ -1032,6 +1167,16 @@ user_created_map <- reactive({
 clicked_HUC <- reactiveVal(character(0))
 
 
+observeEvent(input$watersheds, {
+  
+  if (identical(input$watersheds, character(0))) {
+    clicked_HUC(character(0))
+  }
+
+  })
+
+
+
 observeEvent(input$leafmap_shape_click,{
   
  
@@ -1068,6 +1213,8 @@ observeEvent(input$leafmap_shape_click,{
     # Store in reactive val
     clicked_HUC(c(clicked_HUC_data, clicked_HUC()))
   }
+  
+  
   
 
   updatePickerInput(session, "watersheds", selected = clicked_HUC())
@@ -1107,23 +1254,23 @@ output$selectedHUC_name <- renderText({
 
 # other card --------------------------------------------------------------
 
-show_additional_card <- reactive({
-  !is.null(input$leafmap_shape_click)
-})
-
-output$additional_card <- renderUI({
-  
-  req(input$leafmap_shape_click)
-
-    card(
-      id = "additional_cards",
-      full_screen = TRUE,
-      style = "resize:both;",
-      card_header(verbatimTextOutput("selectedHUC_name")),
-      card_body(DT::dataTableOutput("selectedHUC"))
-    )
-
-})
+# show_additional_card <- reactive({
+#   !is.null(input$leafmap_shape_click)
+# })
+# 
+# output$additional_card <- renderUI({
+#   
+#   req(input$leafmap_shape_click)
+# 
+#     card(
+#       id = "additional_cards",
+#       full_screen = TRUE,
+#       style = "resize:both;",
+#       card_header(verbatimTextOutput("selectedHUC_name")),
+#       card_body(DT::dataTableOutput("selectedHUC"))
+#     )
+# 
+# })
 
 
 # Leaflet Proxy -----------------------------------------------------------

@@ -142,6 +142,12 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                              style = "resize:both;",
                              card_header("Temperature"),
                              card_body(highchartOutput("mrngo_water_plot"))
+                           ),
+                           card(
+                             full_screen = TRUE,
+                             style = "resize:both;",
+                             card_header("Stage Height"),
+                             card_body(highchartOutput("mrngo_stage_plot"))
                            )
                          )
                          ),
@@ -219,10 +225,17 @@ bslib::nav_panel(title = "Table",
                             #selected= filtered_huc()$Name,   
                             choicesOpt = list(subtext = huc12$HUC12))),
               card_body(
-                uiOutput("acres_box")
-                ),
-              card_body(uiOutput("bmps_table")
-                        )
+              uiOutput("acres_box")),
+              card_header(
+                checkboxGroupButtons(size = 'xs',
+                                     inputId = "bmps_active",
+                                     label = "Active BMPs", 
+                                     choices = c("Yes", "No"),
+                                     selected = "Yes",
+                                     status = "primary"
+                )),
+              card_body(height = "250",uiOutput("bmps_box"))
+              #card_body(uiOutput("bmps_plot"))
               
               ),
                             card(full_screen = TRUE,
@@ -243,6 +256,7 @@ bslib::nav_panel(title = "Table",
                                               label = "Category",
                                               choices = c("Wildlife",
                                                           "Erosion",
+                                                          "BMPs",
                                                           "Frequently Flooded Areas",
                                                           "Wetlands",
                                                           "Geologically Hazardous Areas",
@@ -264,6 +278,7 @@ bslib::nav_panel(title = "Table",
                           bslib::accordion(
                             id = "acc",
                             list(
+                             uiOutput("bmps_table"), 
                              uiOutput("wildlife_box"),
                              uiOutput("erosion_box"),
                              uiOutput("wetlands_box"),
@@ -282,7 +297,7 @@ bslib::nav_panel(title = "Table",
                          full_screen = TRUE,
                          style = "resize:both;",
                          #card_header(textOutput("selectedHUC_name")),
-                         card_header(downloadButton(outputId = "dl", label = "Download Map")),
+
                          card_body(leafletOutput("leafmap"))
                          ), #----- End leaflet map card-----
                       
