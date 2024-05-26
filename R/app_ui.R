@@ -134,23 +134,8 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                        
                       ),
                                    
-                      
-        bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
-                         layout_column_wrap(
-                           card(
-                             full_screen = TRUE,
-                             style = "resize:both;",
-                             card_header("Temperature"),
-                             card_body(highchartOutput("mrngo_water_plot"))
-                           ),
-                           card(
-                             full_screen = TRUE,
-                             style = "resize:both;",
-                             card_header("Stage Height"),
-                             card_body(highchartOutput("mrngo_stage_plot"))
-                           )
-                         )
-                         ),
+                       
+
                          
                          
                          
@@ -201,6 +186,28 @@ bslib::nav_panel(title = "Table",
           bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
           bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
+        bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
+                         layout_column_wrap(
+                           card(
+                             full_screen = TRUE,
+                             style = "resize:both;",
+                             card_header("Temperature"),
+                             card_body(highchartOutput("mrngo_water_plot") %>%
+                              shinycssloaders::withSpinner(
+                                image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
+                           ),
+                           card(
+                             full_screen = TRUE,
+                             style = "resize:both;",
+                             card_header("Stage Height"),
+                             card_body(highchartOutput("mrngo_stage_plot")%>%
+            shinycssloaders::withSpinner(
+            image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
+                                       
+                                       )
+                           )
+                         )
+                         
         )
       ),
 
@@ -227,13 +234,33 @@ bslib::nav_panel(title = "Table",
               card_body(
               uiOutput("acres_box")),
               card_header(
-                checkboxGroupButtons(size = 'xs',
-                                     inputId = "bmps_active",
-                                     label = "Active BMPs", 
-                                     choices = c("Yes", "No"),
-                                     selected = "Yes",
-                                     status = "primary"
-                )),
+                
+                checkboxGroupButtons(
+                  inputId = "bmps_active",
+                  selected = "Yes", 
+                  label = "Active BMPs",
+                  choices = c("Yes", "No"),
+                  checkIcon = list(
+                    yes = tags$i(class = "fa fa-check-square", 
+                                 style = "color: #84563C"),
+                    no = tags$i(class = "fa fa-square-o", 
+                                style = "color: #84563C"))
+                )
+                
+                
+                # checkboxGroupButtons(size = 'xs',
+                #                      inputId = "bmps_active",
+                #                      label = "Active BMPs", 
+                #                      choices = c("Yes", "No"),
+                #                      selected = "Yes",
+                #                      status = "primary"
+                # )
+                # 
+                
+                
+                
+                
+                ),
               card_body(height = "250",uiOutput("bmps_box"))
               #card_body(uiOutput("bmps_plot"))
               

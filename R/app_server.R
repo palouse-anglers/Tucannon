@@ -69,11 +69,22 @@ bmp_shape <-  sf::st_read("inst/huc_merge/BMP_shape.shp",quiet = TRUE)
 bmps <- bmp_points %>%
   bind_rows(bmp_lines) %>%
   bind_rows(bmp_shape) %>%
-  mutate(active=replace_na(ifelse(activty=="ACTIVE","Yes","No"),"No"),
+  mutate(active=tidyr::replace_na(ifelse(activty=="ACTIVE","Yes","No"),"No"),
            project=case_when(
            str_detect(project,"METER") ~ "FLOW METER",
            str_detect(project,"DEVELOPMENT") ~ "WATER DEVELOPMENT",
-         TRUE ~ project))
+         TRUE ~ project)) %>%
+  select(HUC12,
+         Program=program,
+         Project=project,
+         Year=instll_,
+         Active=active,
+         Type=type,
+         ID=Cntr_ID)%>%
+  left_join(huc12 %>%
+  select(HUC12,Name) %>%
+  st_drop_geometry(),by="HUC12")
+
 
 
 # Marengo
@@ -90,6 +101,10 @@ app_server <- function(input, output, session) {
   
 
   
+# full_bmps <- reactive{(
+#   bmps
+#   
+# )}  
 
   
   
@@ -107,12 +122,7 @@ rve_params <- reactive({
    
    bmps %>%
      dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
-     dplyr::filter(active %in% input$bmps_active) %>%
-       select(HUC12,
-            Program=program,
-            Project=project,
-            Year=instll_,
-            Active=active)
+     dplyr::filter(Active %in% input$bmps_active)
    
  })
  
@@ -973,14 +983,18 @@ output$bmps_table <- renderUI({
 })
 
 
+observe(
+  print(rve_bmps())
+  )
 # bmps box ----------------------------------------------------------------
 
-
+ 
 
 output$bmps_box <- renderUI({
   
-    
+ 
 req(nrow(filtered_huc())>=1)
+
 
   total_bmps <- rve_bmps() %>%
     st_drop_geometry() %>%
@@ -989,11 +1003,45 @@ req(nrow(filtered_huc())>=1)
     ungroup()
 
   
- # bmp_count=ifelse(nrow(total_bmps)>1,0,sum(total_bmps)))
   
+  # total_bmps <- max(
+  #   nrow(rve_bmps(),0))
+  
+  # active_bmps <- rve_bmps() %>%
+  #   filter(Active=="Yes") %>%
+  #   st_drop_geometry() %>%
+  #   group_by(HUC12) %>%
+  #   tally() %>%
+  #   ungroup()
+  # 
+  # active_bmps <- max(
+  #   nrow(rve_bmps() %>%
+  #          filter(input$bmps_active=="No")),0)
+  # 
+  # inactive_bmps <- rve_bmps() %>%
+  #   filter(input$bmps_active=="No") %>%
+  #   st_drop_geometry() %>%
+  #   group_by(HUC12) %>%
+  #   tally() %>%
+  #   ungroup()
+  
+  # inactive_bmps <- max(
+  #   nrow(rve_bmps() %>%
+  #        filter(input$bmps_active=="No")),0)
+  # 
+  
+  #inactive_bmps <- ifelse(length(inactive_bmps==0),"",inactive_bmps)
+  
+  #total_count <- sum(total_bmps$n[!is.na(total_bmps$HUC12)])
+  
+ # bmp_count=ifelse(nrow(total_bmps)>1,0,sum(total_bmps)))
+ 
+
   value_box(
     title = "Tucannon Watershed BMPs",
     value = sum(total_bmps$n[!is.na(total_bmps$HUC12)]),
+    # p(active_bmps$n,"Active"),
+    #p(inactive_bmps,"Not active"),
     showcase = bsicons::bs_icon("hammer"),
     theme = "primary"
   )
@@ -1110,7 +1158,10 @@ accordion_state <- reactiveVal(NULL)
 
 # Leaflet -----------------------------------------------------------------
 
+
+
 foundational_map <- reactive({
+  
   
   # Hydrography layer options 
 
@@ -1128,6 +1179,25 @@ foundational_map <- reactive({
                 ),
                 
                 group="Waterways") %>%
+    addPolygons(data=huc12,
+                group="watersheds",
+                layerId = huc12$Name,
+                color = "black",
+                weight = 1,
+                highlight = highlightOptions(
+                  weight = 3,
+                  fillOpacity = 0.2,
+                  color = "#545c45",
+                  fillColor = "#2c3e50",
+                  opacity = 1.0,
+                  bringToFront = TRUE,
+                  sendToBack = TRUE),  
+                # # Add label info when mouseover
+                label = ~Name,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", padding = "3px 8px"),
+                  textsize = "14px",
+                  direction = "auto"))%>%
     addProviderTiles("Esri.WorldImagery", group="Imagery") %>%
     addProviderTiles("CartoDB.DarkMatter", group="Dark") %>%
     addProviderTiles("Esri.NatGeoWorldMap", group="Topo") %>%
@@ -1140,6 +1210,9 @@ foundational_map <- reactive({
   
 
 output$leafmap <- renderLeaflet({
+  
+pal <- colorFactor(palette = c("goldenrod", "#84563C"), 
+                   domain = bmps$Active)
   
   foundational_map()
   
@@ -1179,14 +1252,19 @@ observeEvent(input$watersheds, {
 
 observeEvent(input$leafmap_shape_click,{
   
- 
+  req(input$map_shape_click$group == "watersheds")
+  
+  
   #print(watersheds_selected)
   print(clicked_HUC())
   print(input$watersheds)
   
   
+  
   # capture the info of the clicked polygon
   click <- input$leafmap_shape_click
+  print(click)
+  
   # subset to clicked
   clicked_HUC_data <- unique(as.character(huc12$Name[huc12$Name == click$id]))
 
@@ -1278,6 +1356,10 @@ output$selectedHUC_name <- renderText({
 
 observe({
   
+
+  
+  pal <- colorFactor(palette = c("#84563C", "goldenrod"), 
+                     domain = bmps$Active)
  # clicked_HUC()
  #  
  # print(filtered_huc())
@@ -1286,6 +1368,10 @@ observe({
     setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
     clearShapes() %>%
     clearMarkers() %>%
+    removeControl(layerId = "bmp_layer") %>%
+    addMapPane("ames_points", zIndex = 490) %>% # shown below ames_circles
+    addMapPane("ames_watersheds_selected", zIndex = 410) %>% # shown above ames_lines
+    addMapPane("ames_watersheds", zIndex = 400) %>% # shown below ames_circles
     # addPolygons(data=wetlands,
     #             group="wetlands",
     #             label = ~ACRES,
@@ -1310,50 +1396,9 @@ observe({
                   style = list("font-weight" = "normal", padding = "3px 8px"),
                   textsize = "14px",
                   direction = "auto"))   %>%
-    #addPolygons(data=private_ag23,popup = ~popupTable(private_ag23)) %>%
-    addMarkers(data=stations,group="WQStation") %>%
-    addPolygons(data=bmp_shape,
-                group="BMP",
-                label = ~CntrctN,
-                popup = ~ popupTable(bmp_shape),
-                fillColor = "goldenrod",
-                fillOpacity = 1,
-                stroke = TRUE,
-                color="black",
-                weight= 1,
-                highlightOptions = highlightOptions(color = "red", weight = 2,
-                                                    bringToFront = TRUE)) %>%
-    addPolylines(data=st_zm(bmp_lines),
-                 group="BMP",
-                 fillColor = "goldenrod",
-                 popup = ~ popupTable(bmp_lines),
-                 fillOpacity = 1,
-                 stroke = TRUE,
-                 color="goldenrod",
-                 opacity = 1,
-                 weight= 3,
-                 label = ~CntrctN,
-                 highlightOptions = highlightOptions(color = "red", weight = 2,
-                                                     bringToFront = TRUE)) %>%
-    addCircleMarkers(data=bmp_points,
-                     group="BMP",
-                     fillColor = "goldenrod",
-                     popup = ~ popupTable(bmp_points),
-                     fillOpacity = 1,
-                     stroke = TRUE,
-                     color="black",
-                     weight= 1,
-                     label = ~CntrctN)%>%
-    #addSearchGoogle() %>%
-    addLayersControl(
-      overlayGroups = c("Waterways","BMP","watersheds","WQStation","wetlands"),
-      baseGroups = c("Topo","Imagery", "Dark", "Street")
-    ) %>%
-    leaflet.extras::addFullscreenControl() %>%
-    leafem::addMouseCoordinates() %>%
-    hideGroup(c("Waterways","WQStation","BMP","wetlands")) %>%
-    addPolygons(data=filtered_huc(),
+       addPolygons(data=filtered_huc(),
                 group="watersheds",
+                options = pathOptions(pane = "ames_watersheds"),
                 layerId = filtered_huc()$Name,
                 color = "red",
                 weight = 1,
@@ -1371,9 +1416,69 @@ observe({
                   style = list("font-weight" = "normal", padding = "3px 8px"),
                   textsize = "14px",
                   direction = "auto")
-                ) 
-    
- 
+    )  %>%
+    #addPolygons(data=private_ag23,popup = ~popupTable(private_ag23)) %>%
+    addMarkers(data=stations,group="WQStation",options = pathOptions(pane = "ames_points")) %>%
+    addPolygons(data=bmps %>% filter(Type=="SHAPE") ,
+                group="BMP",
+                options = pathOptions(pane = "ames_points"),
+                #label = ~CntrctN,
+                popup = ~ popupTable(feature.id = FALSE,bmps,row.numbers = FALSE),
+                fillColor = ~pal(Active),
+                fillOpacity = 1,
+                stroke = TRUE,
+                color="black",
+                label = ~Project,
+                weight= 1,
+                highlightOptions = highlightOptions(color = "red", weight = 2,
+                                                    bringToFront = TRUE)) %>%
+    addPolylines(data=st_zm(bmps %>% filter(Type=="LINE")),
+                 group="BMP",
+                 options = pathOptions(pane = "ames_points"),
+                 fillColor = ~pal(Active),
+                 popup = ~ popupTable(feature.id = FALSE,bmps,row.numbers = FALSE),
+                 fillOpacity = 1,
+                 stroke = TRUE,
+                 color="goldenrod",
+                 opacity = 1,
+                 weight= 3,
+                 label = ~Project,
+                 highlightOptions = highlightOptions(color = "red", weight = 2,
+                                                     bringToFront = TRUE)) %>%
+    addCircleMarkers(data=bmps %>% filter(Type=="POINT"),
+                     group="BMP",
+                     options = pathOptions(pane = "ames_points"),
+                     fillColor = ~pal(Active),
+                     popup = ~ popupTable(
+                       feature.id = FALSE,
+                       bmps,
+                       row.numbers = FALSE),
+                     fillOpacity = 1,
+                     stroke = TRUE,
+                     color="black",
+                     weight= 1,
+                     label = ~Project
+                     ) %>%
+    #addSearchGoogle() %>%
+    addLayersControl(
+      overlayGroups = c("Waterways","BMP","watersheds","WQStation","wetlands"),
+      baseGroups = c("Topo","Imagery", "Dark", "Street")
+    ) %>%
+    leaflet.extras::addFullscreenControl() %>%
+    leafem::addMouseCoordinates() %>%
+    hideGroup(c("Waterways","WQStation","BMP","wetlands")) %>%
+    addLegend(layerId = "bmp_layer",
+              group = "BMP",
+              labels = c("Yes","No"),
+      "bottomright",
+      pal = pal,
+      values = c("Yes","No"),
+      title = "BMP is Active",
+      opacity = 1
+    )
+
+  
+  
   bounds <- filtered_huc() %>% 
     st_bbox() %>% 
     as.character()
