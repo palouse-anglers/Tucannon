@@ -27,7 +27,7 @@ suppressWarnings(
 
 huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
   select(HUC12) %>%
-  left_join(read.csv("inst/huc_merge/HUC12_reworked2.csv") %>% 
+  left_join(read.csv("inst/huc_merge/HUC12_reworked3.csv") %>% 
               mutate(HUC12=as.character(HUC12)),by="HUC12")
 
 names_huc12 <- names(huc12)
@@ -106,6 +106,19 @@ app_server <- function(input, output, session) {
 #   
 # )}  
 
+  
+  # reactive BMPs
+  rve_year_bmps <- reactive({
+    
+    bmps %>%
+      st_drop_geometry() %>%
+      mutate(Date=paste0(Year,"-05-04")
+             ) %>%
+      dplyr::filter(
+        lubridate::year(lubridate::date(Date)) >= input$dateRange[1] &  lubridate::year(lubridate::date(Date)) <= input$dateRange[2]) 
+ 
+      
+  })  
   
   
 # Year and Month filter for plots 
@@ -371,6 +384,31 @@ output$do_plot <- renderHighchart({
    
  
  })
+
+
+
+
+# BMPS full table ---------------------------------------------------------
+
+
+output$bmps_full_table <- DT::renderDT({
+  
+  
+  req(nrow(rve_year_bmps()>=1))
+  
+  DT::datatable(height = 900,
+                data=rve_year_bmps(),
+                extensions = 'Buttons',
+                filter = 'top',
+                options = list(
+                  lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                  dom = 'lfrtipB',
+                  buttons = c('copy', 'csv', 'excel')
+                )
+  ) 
+  
+  
+})
 # Temp boxplot ------------------------------------------------------------
  output$by_year_box <- renderHighchart({
    
@@ -925,6 +963,46 @@ output$land19_box <- renderUI({
   
 })
 
+#SRP box ------------------------------------------------------------
+
+srp_panels <-  reactive({
+  
+  srp_names <- huc12 %>%
+    select(starts_with("SRP")) %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  srp_abv_names <- c("Managed for Livestock","Managed for Agriculture","Managed for Livestock")
+  
+  total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+
+    data.frame(
+            Acres=glue::glue("{scales::comma(round(sum(as.numeric(filtered_huc()$SRP_ACRES),na.rm=TRUE), 0))}"),
+            Percent=glue::glue("% {round(sum(as.numeric(filtered_huc()$SRP_ACRES),na.rm=TRUE)/total_huc_acrew*100,2)}")
+            )
+  
+  
+  
+})
+
+
+output$srp_box <- renderUI({
+  
+  req("SRP" %in% input$selectInput)
+  
+  
+  card(id = "srp_id",
+       height = "200px",
+       card_header("SRP"),
+       card_body(
+         DT::datatable(srp_panels(),options = list(dom = 't'),rownames=FALSE)
+       ))
+  
+  
+  
+})
+
 #land 11 box ------------------------------------------------------------
 
 land11_panels <-  reactive({
@@ -1252,7 +1330,7 @@ observeEvent(input$watersheds, {
 
 observeEvent(input$leafmap_shape_click,{
   
-  req(input$map_shape_click$group == "watersheds")
+  req(input$leafmap_shape_click$group == "watersheds")
   
   
   #print(watersheds_selected)
@@ -1368,6 +1446,7 @@ observe({
     setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
     clearShapes() %>%
     clearMarkers() %>%
+    clearGroup("bmp_layer") %>%
     removeControl(layerId = "bmp_layer") %>%
     addMapPane("ames_points", zIndex = 490) %>% # shown below ames_circles
     addMapPane("ames_watersheds_selected", zIndex = 410) %>% # shown above ames_lines

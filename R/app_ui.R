@@ -186,7 +186,8 @@ bslib::nav_panel(title = "Table",
           bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
           bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
-        bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
+          bslib::nav_panel(title = "BMPs",DT::dataTableOutput("bmps_full_table")), 
+          bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
                          layout_column_wrap(
                            card(
                              full_screen = TRUE,
@@ -285,6 +286,7 @@ bslib::nav_panel(title = "Table",
                                                           "Erosion",
                                                           "BMPs",
                                                           "Frequently Flooded Areas",
+                                                          "SRP",
                                                           "Wetlands",
                                                           "Geologically Hazardous Areas",
                                                           "Landuse 2011",
@@ -311,6 +313,7 @@ bslib::nav_panel(title = "Table",
                              uiOutput("wetlands_box"),
                              uiOutput("flood_box"),
                              uiOutput("land19_box"),
+                             uiOutput("srp_box"),
                              uiOutput("land11_box"),
                              uiOutput("geo_box")
                              ),
