@@ -25,6 +25,7 @@ suppressMessages(library(shinyjs,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(shinydashboardPlus,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(mapview,quietly = TRUE,warn.conflicts = FALSE))
 suppressMessages(library(htmlwidgets,quietly = TRUE,warn.conflicts = FALSE))
+suppressMessages(library(stringr,quietly = TRUE,warn.conflicts = FALSE))
 # Highcharts --------------------------------------------------------------
 
 # suppressWarnings(
@@ -84,6 +85,7 @@ app_ui <- function(request) {
       tags$script(src = "https://code.highcharts.com/highcharts.js"),
       tags$script(src = "https://code.highcharts.com/modules/exporting.js"),
       tags$script(src ="R/www/downloadLeafletMap.js")
+      #tags$style(".leaflet-control.legend { display: none; }")
       
     ),
     # Your application UI logic
@@ -182,12 +184,62 @@ bslib::nav_panel(title = "Table",
                              card_body(htmlOutput("iframe_marengo"))
                              )
                               ), # End flow nav panel
-          bslib::nav_panel(title = "TSS",p("TSS Placeholder")),
-          bslib::nav_panel(title = "Turbidity",p("Turbidity Placeholder")),
-          bslib::nav_panel(title = "Ammonia",p("Ammonia Placeholder")),
+          bslib::nav_panel(title = "TSS",
+                           
+                      card(
+                        full_screen = TRUE,
+                        fill = TRUE,
+                        style = "resize:both;",
+                        card_body(height = '65vh',highchartOutput("TSS_plot"))
+                        )
+                           
+                           
+                           ),
+          bslib::nav_panel(title = "Turbidity",
+                   card(
+                full_screen = TRUE,
+                fill = TRUE,
+                style = "resize:both;",
+                card_body(height = '65vh',highchartOutput("Turbidity_plot"))
+                           )
+                           
+                           ),
+bslib::nav_panel(title = "Bacteria",
+                 card(
+                   full_screen = TRUE,
+                   fill = TRUE,
+                   style = "resize:both;",
+                   card_body(height = '65vh',highchartOutput("bacteria_plot"))
+                 ) ),
+          bslib::nav_panel(title = "Ammonia",
+                    card(
+                    full_screen = TRUE,
+                    fill = TRUE,
+                    style = "resize:both;",
+                    card_body(height = '65vh',highchartOutput("Ammonia_plot"))
+                  )
+               ),
           bslib::nav_panel(title = "Date Ranges",DT::datatable(param_ranges)),
-          bslib::nav_panel(title = "BMPs",DT::dataTableOutput("bmps_full_table")), 
-          bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
+          bslib::nav_panel(title = "BMPs",
+      layout_column_wrap(
+            card(
+            full_screen = TRUE,
+            fill = TRUE,
+            style = "resize:both;",
+            card_header("BMPs Table"),
+            card_body(height = '65vh',DT::dataTableOutput("bmps_full_table",width = "90%"))
+            ),
+            card(
+              full_screen = TRUE,
+              fill = TRUE,
+              style = "resize:both;",
+              card_header("BMPs Plot"),
+              card_body(height = '65vh',highchartOutput("bmps_stacked"))
+            ))
+            ), 
+         
+            
+             bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
                          layout_column_wrap(
                            card(
                              full_screen = TRUE,

@@ -6,7 +6,8 @@
 #' @noRd
 #' 
 #' 
-
+library(sf)
+library(stringr)
 
 # load files --------------------------------------------------------------
 # Starbuck
@@ -71,8 +72,8 @@ bmps <- bmp_points %>%
   bind_rows(bmp_shape) %>%
   mutate(active=tidyr::replace_na(ifelse(activty=="ACTIVE","Yes","No"),"No"),
            project=case_when(
-           str_detect(project,"METER") ~ "FLOW METER",
-           str_detect(project,"DEVELOPMENT") ~ "WATER DEVELOPMENT",
+           stringr::str_detect(project,"METER") ~ "FLOW METER",
+           stringr::str_detect(project,"DEVELOPMENT") ~ "WATER DEVELOPMENT",
          TRUE ~ project)) %>%
   select(HUC12,
          Program=program,
@@ -83,7 +84,7 @@ bmps <- bmp_points %>%
          ID=Cntr_ID)%>%
   left_join(huc12 %>%
   select(HUC12,Name) %>%
-  st_drop_geometry(),by="HUC12")
+  sf::st_drop_geometry(),by="HUC12")
 
 
 
@@ -111,7 +112,7 @@ app_server <- function(input, output, session) {
   rve_year_bmps <- reactive({
     
     bmps %>%
-      st_drop_geometry() %>%
+      sf::st_drop_geometry() %>%
       mutate(Date=paste0(Year,"-05-04")
              ) %>%
       dplyr::filter(
@@ -159,7 +160,7 @@ rve_mngo_stage <- reactive({
 
 # Marengo Water Temp ------------------------------------------------------
 
-output$mrngo_water_plot <- renderHighchart({
+output$mrngo_water_plot <- highcharter::renderHighchart({
   
   req(length(input$monthRange)>=1)
   req(nrow(rve_mngo_water()>1))
@@ -388,7 +389,7 @@ output$do_plot <- renderHighchart({
 
 
 
-# BMPS full table ---------------------------------------------------------
+## bmps table ---------------------------------------------------------
 
 
 output$bmps_full_table <- DT::renderDT({
@@ -396,8 +397,9 @@ output$bmps_full_table <- DT::renderDT({
   
   req(nrow(rve_year_bmps()>=1))
   
-  DT::datatable(height = 900,
-                data=rve_year_bmps(),
+  
+  DT::datatable(height = 900,rownames = FALSE,
+                data=rve_year_bmps() %>% select(Name,HUC12,everything(),-Date),
                 extensions = 'Buttons',
                 filter = 'top',
                 options = list(
@@ -409,6 +411,35 @@ output$bmps_full_table <- DT::renderDT({
   
   
 })
+
+output$bmps_stacked <- renderHighchart({
+  
+
+  req(nrow(rve_year_bmps()>=1))
+  
+  bmps2 <- rve_year_bmps() %>%
+    st_drop_geometry() %>%
+    group_by(Year,Project) %>%
+    tally()
+
+bmps2 %>%
+hchart("column", hcaes(x = Year, y = n, group = Project), 
+       stacking = "normal")%>%
+  hc_exporting(enabled = TRUE, 
+               buttons = list(contextButton = list(menuItems = list(
+                 list(
+                   textKey = "downloadPNG",
+                   onclick = JS("function() { this.exportChart(); }")
+                 )
+               )))) 
+  
+  
+
+})
+
+
+
+
 # Temp boxplot ------------------------------------------------------------
  output$by_year_box <- renderHighchart({
    
@@ -504,6 +535,140 @@ output$bmps_full_table <- DT::renderDT({
  
   })
  
+
+# TSS ---------------------------------------------------------------------
+
+ output$TSS_plot <- renderHighchart({
+   
+   req(input$navset_tabs_id == "TSS")
+   
+   tss <- rve_params() %>%
+     filter(Param=="Total Suspended Solids") %>%
+     group_by(Date) %>%
+     mutate(Result=round(mean(Result),2))%>%
+     distinct(Date,Result,Units) %>%
+     arrange(Date)%>%
+     ungroup()
+   
+   req(nrow(tss)>1)
+   
+  tss_model <- broom::augment(lm(Result ~ Date, data = tss))
+   
+   
+   tss %>%
+     highcharter::hchart(
+       type="scatter",
+       hcaes(x = Date, y = Result),
+       name = "mg/L",
+       showInLegend = TRUE
+     )%>%
+     hc_add_series(
+       tooltip = list(enabled = FALSE),
+       dashStyle = "Dash",
+       data = tss_model,
+       hcaes(x = Date, y = .fitted),
+       showInLegend = TRUE,
+       name = "Regression",
+       type = "line",
+       color = "black"
+     )%>%
+     hc_plotOptions(line = list(
+       marker = list(
+         enabled = FALSE
+       )
+     ))%>%
+     hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' mg/L'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+     hc_yAxis(title = list(text = "mg/L")) %>%
+     hc_title(text = "Total Suspended Solids")%>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  )))) %>%
+     hc_chart(
+       backgroundColor = "#FFFFFF" 
+     )
+   
+ })
+ 
+ # TSS ---------------------------------------------------------------------
+ 
+ output$Turbidity_plot <- renderHighchart({
+   
+   req(input$navset_tabs_id == "Turbidity")
+   
+   turbidity <- rve_params() %>%
+     filter(Param=="Turbidity") %>%
+     group_by(Date) %>%
+     mutate(Result=round(mean(Result),2))%>%
+     distinct(Date,Result,Units) %>%
+     arrange(Date)%>%
+     ungroup()
+   
+   req(nrow(turbidity)>1)
+   
+   turbidity_model <- broom::augment(lm(Result ~ Date, data = turbidity))
+   
+   
+   turbidity %>%
+     highcharter::hchart(
+       type="scatter",
+       hcaes(x = Date, y = Result),
+       name = "mg/L",
+       showInLegend = TRUE
+     )%>%
+     hc_add_series(
+       tooltip = list(enabled = FALSE),
+       dashStyle = "Dash",
+       data = turbidity_model,
+       hcaes(x = Date, y = .fitted),
+       showInLegend = TRUE,
+       name = "Regression",
+       type = "line",
+       color = "black"
+     )%>%
+     hc_plotOptions(line = list(
+       marker = list(
+         enabled = FALSE
+       )
+     ))%>%
+     hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' NTU'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+     hc_yAxis(title = list(text = "NTU")) %>%
+     hc_title(text = "Turbidity")%>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  )))) %>%
+     hc_chart(
+       backgroundColor = "#FFFFFF" 
+     )
+   
+ })
  
 # Phosphorus --------------------------------------------------------------
 output$phos_plot <- renderHighchart({
@@ -573,6 +738,141 @@ phos %>%
 
 })
 
+ # Ammonia ---------------------------------------------------------------------
+ 
+ output$Ammonia_plot <- renderHighchart({
+   
+   req(input$navset_tabs_id == "Ammonia")
+   
+   Ammonia <- rve_params() %>%
+     filter(Param=="Ammonia") %>%
+     group_by(Date) %>%
+     mutate(Result=round(mean(Result),2))%>%
+     distinct(Date,Result,Units) %>%
+     arrange(Date)%>%
+     ungroup()
+   
+   req(nrow(Ammonia)>1)
+   
+   Ammonia_model <- broom::augment(lm(Result ~ Date, data = Ammonia))
+   
+   
+   Ammonia %>%
+     highcharter::hchart(
+       type="scatter",
+       hcaes(x = Date, y = Result),
+       name = "mg/L",
+       showInLegend = TRUE
+     )%>%
+     hc_add_series(
+       tooltip = list(enabled = FALSE),
+       dashStyle = "Dash",
+       data = Ammonia_model,
+       hcaes(x = Date, y = .fitted),
+       showInLegend = TRUE,
+       name = "Regression",
+       type = "line",
+       color = "black"
+     )%>%
+     hc_plotOptions(line = list(
+       marker = list(
+         enabled = FALSE
+       )
+     ))%>%
+     hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' mg/L'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+     hc_yAxis(title = list(text = "mg/L")) %>%
+     hc_title(text = "Turbidity")%>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  )))) %>%
+     hc_chart(
+       backgroundColor = "#FFFFFF" 
+     )
+   
+ })
+ 
+ # Bacteria ---------------------------------------------------------------------
+ 
+ output$bacteria_plot <- renderHighchart({
+   
+   req(input$navset_tabs_id == "Bacteria")
+   
+   Bacteria <- rve_params() %>%
+     filter(Param %in% c("E. coli","Fecal Coliform")) %>%
+     group_by(Date,Param) %>%
+     mutate(Result=round(mean(Result),2))%>%
+     distinct(Date,Result,Units) %>%
+     arrange(Date)%>%
+     ungroup()
+   
+   req(nrow(Bacteria)>1)
+   
+   Bacteria_model <- broom::augment(lm(Result ~ Date, data = Bacteria))
+   
+   
+   Bacteria %>%
+     highcharter::hchart(
+       type="scatter",
+       hcaes(x = Date, y = Result,group=Param, name=Param),
+       showInLegend = TRUE
+     )%>%
+     hc_add_series(
+       tooltip = list(enabled = FALSE),
+       dashStyle = "Dash",
+       data = Bacteria_model,
+       hcaes(x = Date, y = .fitted),
+       showInLegend = TRUE,
+       name = "Regression",
+       type = "line",
+       color = "black"
+     )%>%
+     hc_plotOptions(line = list(
+       marker = list(
+         enabled = FALSE
+       )
+     ))%>%
+     hc_tooltip(formatter = JS("function(){
+  
+  if (this.series.name !== 'Regression') {
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' CFU/100mL'
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))%>%
+     hc_yAxis(title = list(text = "CFU/100mL")) %>%
+     hc_title(text = "Bacteria")%>%
+     hc_exporting(enabled = TRUE, 
+                  buttons = list(contextButton = list(menuItems = list(
+                    list(
+                      textKey = "downloadPNG",
+                      onclick = JS("function() { this.exportChart(); }")
+                    )
+                  )))) %>%
+     hc_chart(
+       backgroundColor = "#FFFFFF" 
+     )
+   
+ })
+ 
+ 
+ 
 # Phosphorus --------------------------------------------------------------
 output$orthophos_plot <- renderHighchart({
   
@@ -744,10 +1044,28 @@ output$acres_box <- renderUI({
 
   
   if (nrow(filtered_huc()) >= 1) {
-    chart <- highcharter::hchart(filtered_huc(),
-   "column",
-   hcaes(x = Name, y = HUC_Acres, group = Name))
-  } else{
+    chart <- highcharter::hchart(filtered_huc(),"column",
+   hcaes(x = Name, y = HUC_Acres, group = Name)) %>%
+      hc_xAxis(
+        labels = list(
+          style = list(
+            color = "#FFFFFF"  # Color of x-axis labels
+          )
+        )) %>%
+      hc_yAxis(
+        labels = list(
+          style = list(
+            color = "#FFFFFF"  # Color of x-axis labels
+          )
+        ))%>%
+      hc_legend(
+        labels = list(
+          style = list(
+            color = "#FFFFFF"  # Color of x-axis labels
+          )
+        ))
+ 
+     } else{
     chart <- NULL
   }
   
@@ -1061,9 +1379,6 @@ output$bmps_table <- renderUI({
 })
 
 
-observe(
-  print(rve_bmps())
-  )
 # bmps box ----------------------------------------------------------------
 
  
@@ -1129,17 +1444,17 @@ req(nrow(filtered_huc())>=1)
 
 # bmps table --------------------------------------------------------------
 
-# 
+
 # output$bmps_plot <- renderUI({
-#   
+# 
 # 
 #   req(nrow(rve_bmps()>1))
-#   
+# 
 #     # DT::datatable(bmps %>%
 #     #               dplyr::filter(HUC12 %in% filtered_huc()$HUC12),
 #     #               options = list(dom = 't')
-#     #    
-#   
+#     #
+# 
 #   highcharter::hchart(
 #     rve_bmps()  %>%
 #       st_drop_geometry() %>%
@@ -1147,7 +1462,7 @@ req(nrow(filtered_huc())>=1)
 #       tally(),
 #     "column",
 #     hcaes(x = Project, y = n))%>%
-#     hc_exporting(enabled = TRUE, 
+#     hc_exporting(enabled = TRUE,
 #                  buttons = list(contextButton = list(menuItems = list(
 #                    list(
 #                      textKey = "downloadPNG",
@@ -1155,7 +1470,7 @@ req(nrow(filtered_huc())>=1)
 #                    )
 #                  ))))%>%
 #     hc_tooltip(formatter = JS("function(){
-#   
+# 
 #   if (this.series.name !== 'TMDL') {
 #                             return (
 #                             ' <br>Project: ' + this.point.Project +
@@ -1164,11 +1479,11 @@ req(nrow(filtered_huc())>=1)
 #   } else {
 #                         return false;
 #                       }
-#                             }")) 
-#  
+#                             }"))
 # 
 # 
-#   
+# 
+# 
 # })
 # flood box ------------------------------------------------------------
 
@@ -1318,10 +1633,10 @@ user_created_map <- reactive({
 clicked_HUC <- reactiveVal(character(0))
 
 
-observeEvent(input$watersheds, {
+observe({
   
-  if (identical(input$watersheds, character(0))) {
-    clicked_HUC(character(0))
+  if(length(input$watersheds)==0) {
+     clicked_HUC(character(0))
   }
 
   })
@@ -1438,6 +1753,18 @@ observe({
   
   pal <- colorFactor(palette = c("#84563C", "goldenrod"), 
                      domain = bmps$Active)
+  
+  pal2 <- colorFactor(palette = c( "#00FF00",  
+                                   "#0000FF",              
+                                   "#FFA500",                     
+                                   "#FFFF00",  
+                                   "#808080",                       
+                                   "#000000"),
+                     domain = wetlands$WETLAND_TY)
+  
+  
+ 
+  
  # clicked_HUC()
  #  
  # print(filtered_huc())
@@ -1451,11 +1778,16 @@ observe({
     addMapPane("ames_points", zIndex = 490) %>% # shown below ames_circles
     addMapPane("ames_watersheds_selected", zIndex = 410) %>% # shown above ames_lines
     addMapPane("ames_watersheds", zIndex = 400) %>% # shown below ames_circles
-    # addPolygons(data=wetlands,
-    #             group="wetlands",
-    #             label = ~ACRES,
-    #             popup = ~ popupTable(wetlands)
-    #             ) %>%
+    addPolygons(data=wetlands,
+                group="wetlands",
+                label = ~ACRES,
+                fillColor =  ~pal2(WETLAND_TY),
+                color =  ~pal2(WETLAND_TY),
+                highlight = highlightOptions(
+                  weight = 3,
+                color = ~pal2(WETLAND_TY)),
+                popup = ~ popupTable(wetlands)
+                ) %>%
     addPolygons(data=huc12,
                 group="watersheds",
                 layerId = huc12$Name,
@@ -1545,7 +1877,6 @@ observe({
     ) %>%
     leaflet.extras::addFullscreenControl() %>%
     leafem::addMouseCoordinates() %>%
-    hideGroup(c("Waterways","WQStation","BMP","wetlands")) %>%
     addLegend(layerId = "bmp_layer",
               group = "BMP",
               labels = c("Yes","No"),
@@ -1554,7 +1885,17 @@ observe({
       values = c("Yes","No"),
       title = "BMP is Active",
       opacity = 1
-    )
+    ) %>%
+    addLegend(layerId = "wetlands_layer",
+              pal=pal2,
+              group = "wetlands",
+              values = unique(wetlands$WETLAND_TY),
+              labels = unique(wetlands$WETLAND_TY),
+              "bottomright",
+              title = "Wetlands",
+              opacity = 1
+    ) %>%
+    hideGroup(c("Waterways","WQStation","BMP","wetlands"))
 
   
   
