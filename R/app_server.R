@@ -418,7 +418,7 @@ output$bmps_stacked <- renderHighchart({
   req(nrow(rve_year_bmps()>=1))
   
   bmps2 <- rve_year_bmps() %>%
-    st_drop_geometry() %>%
+    sf::st_drop_geometry() %>%
     group_by(Year,Project) %>%
     tally()
 
@@ -1308,13 +1308,14 @@ srp_panels <-  reactive({
 output$srp_box <- renderUI({
   
   req("SRP" %in% input$selectInput)
-  
+  req(nrow(srp_panels())>=1)
   
   card(id = "srp_id",
        height = "200px",
        card_header("SRP"),
        card_body(
-         DT::datatable(srp_panels(),options = list(dom = 't'),rownames=FALSE)
+         DT::datatable(data = srp_panels(),
+                       options = list(dom = 't'),rownames=FALSE)
        ))
   
   
@@ -1346,13 +1347,15 @@ land11_panels <-  reactive({
 output$land11_box <- renderUI({
   
   req("Landuse 2011" %in% input$selectInput)
-  
+  req(nrow(land11_panels())>=1)
 
   card(id = "ag11_id",
        height = "300px",
        card_header("Agriculture Land Use 2011"),
        card_body(
-         DT::datatable(land11_panels(),options = list(dom = 't'),rownames=FALSE)
+         DT::datatable(data=land11_panels(),
+                       options = list(dom = 't'),
+                       rownames=FALSE)
          ))
   
   
@@ -1368,8 +1371,8 @@ output$bmps_table <- renderUI({
        height = "300px",
        card_header("BMPs"),
        card_body(
-         DT::datatable(rve_bmps() %>%
-                         st_drop_geometry() %>%
+         DT::datatable(data=rve_bmps() %>%
+                         sf::st_drop_geometry() %>%
                          group_by(Project) %>%
                          tally(),options = list(dom = 't'),rownames=FALSE))
        )
@@ -1390,7 +1393,7 @@ req(nrow(filtered_huc())>=1)
 
 
   total_bmps <- rve_bmps() %>%
-    st_drop_geometry() %>%
+    sf::st_drop_geometry() %>%
     group_by(HUC12) %>%
     tally() %>%
     ungroup()
@@ -1430,7 +1433,7 @@ req(nrow(filtered_huc())>=1)
  # bmp_count=ifelse(nrow(total_bmps)>1,0,sum(total_bmps)))
  
 
-  value_box(
+  value_box(fill = TRUE,
     title = "Tucannon Watershed BMPs",
     value = sum(total_bmps$n[!is.na(total_bmps$HUC12)]),
     # p(active_bmps$n,"Active"),
@@ -1513,7 +1516,7 @@ output$flood_box <- renderUI({
   card(id = "flood_id",
        height = "150px",
        card_header("Frequently Flooded Areas"),
-       card_body(DT::datatable(flood_panels(),options = list(dom = 't')))
+       card_body(rownames = FALSE,DT::datatable(flood_panels(),options = list(dom = 't')))
        )
 
 })
@@ -1706,7 +1709,7 @@ output$selectedHUC <- DT::renderDataTable({
     return(NULL)  # Return NULL if no shape clicked
   } else {
     # Render the DataTable with the filtered data
-    DT::datatable(data = filtered_huc())
+    DT::datatable(rownames = FALSE,data = filtered_huc())
   }
 
   })
@@ -1773,6 +1776,7 @@ observe({
     setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
     clearShapes() %>%
     clearMarkers() %>%
+    clearControls() %>%
     clearGroup("bmp_layer") %>%
     removeControl(layerId = "bmp_layer") %>%
     addMapPane("ames_points", zIndex = 490) %>% # shown below ames_circles
@@ -1912,7 +1916,8 @@ observe({
   # ymax <- max(set_zoom[4],na.rm = TRUE)
   # 
    map <- map %>%
-     fitBounds(bounds[1], bounds[2], bounds[3], bounds[4])
+     fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
+     clearControls() 
      #flyToBounds(xmin,ymin,xmax,ymax)
 
    #print(filtered_huc())
