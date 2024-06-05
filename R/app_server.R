@@ -373,6 +373,7 @@ output$do_plot <- renderHighchart({
    req(nrow(rve_params()>=1))
    
    DT::datatable(height = 900,
+      rownames=FALSE,
      data=rve_params(),
      extensions = 'Buttons',
      filter = 'top',
@@ -1076,7 +1077,7 @@ output$acres_box <- renderUI({
     p(glue::glue("{length(unique(filtered_huc()$Name))} watersheds selected")),
     p("Columbia County HUC12"),
     p("Tucannon Watershed"),
-    chart,
+    #chart,
     full_screen = TRUE,
     theme = "success"
   )
@@ -1117,7 +1118,7 @@ output$erosion_box <- renderUI({
   card(id="erosion_id",
   height = "250px",
   card_header("Erosion"),
-  DT::datatable(erosion_panels(),options = list(dom = 't'))
+  DT::datatable(erosion_panels(),options = list(dom = 't'),rownames=FALSE)
   )
 
   
@@ -1156,7 +1157,7 @@ output$wildlife_box <- renderUI({
   card(id="wild_id",
        height = "410px",
        card_header("Wildlife"),
-       DT::datatable(wildlife_panels(),options = list(dom = 't'))
+       DT::datatable(wildlife_panels(),options = list(dom = 't'),rownames=FALSE)
   )
   
 
@@ -1194,7 +1195,7 @@ output$geo_box <- renderUI({
  card(id="geo_id",
       height = "350px",
       card_header("Geologically Hazardous Areas"),
-      DT::datatable(geo_panels(),options = list(dom = 't'))
+      DT::datatable(geo_panels(),options = list(dom = 't'),rownames=FALSE)
       )
   
 
@@ -1231,7 +1232,7 @@ output$wetlands_box <- renderUI({
   card(id="wet_id",
        height = "380px",
        card_header("Wetlands"),
-       DT::datatable(wet_panels(),options = list(dom = 't'))
+       DT::datatable(wet_panels(),options = list(dom = 't'),rownames=FALSE)
   )
   
   # accordion_panel(title = "Wetlands",
@@ -1322,6 +1323,45 @@ output$srp_box <- renderUI({
   
 })
 
+#AQUIFERS box ------------------------------------------------------------
+
+aquifer_panels <-  reactive({
+  
+  aquifer_names <- huc12 %>%
+    select('Ground.Water...Well_Aquifer') %>% 
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+   total_huc_acrew <-  sum(filtered_huc()$HUC_Acres)
+  
+  
+  data.frame(
+    Acres=glue::glue("{scales::comma(round(sum(as.numeric(filtered_huc()$Ground.Water...Well_Aquifer),na.rm=TRUE), 0))}"),
+    Percent=glue::glue("% {round(sum(as.numeric(filtered_huc()$Ground.Water...Well_Aquifer),na.rm=TRUE)/total_huc_acrew*100,2)}")
+  )
+  
+  
+
+  
+})
+
+
+output$aquifer_box <- renderUI({
+  
+  req("Aquifers" %in% input$selectInput)
+  req(nrow(aquifer_panels())>=1)
+  
+  card(id = "aquifer_id",
+       height = "200px",
+       card_header("aquifer"),
+       card_body(
+         DT::datatable(data = aquifer_panels(),
+                       options = list(dom = 't'),rownames=FALSE)
+       ))
+  
+  
+  
+})
 #land 11 box ------------------------------------------------------------
 
 land11_panels <-  reactive({
@@ -1516,7 +1556,7 @@ output$flood_box <- renderUI({
   card(id = "flood_id",
        height = "150px",
        card_header("Frequently Flooded Areas"),
-       card_body(rownames = FALSE,DT::datatable(flood_panels(),options = list(dom = 't')))
+       card_body(DT::datatable(flood_panels(),rownames = FALSE,options = list(dom = 't')))
        )
 
 })
@@ -1705,25 +1745,33 @@ observeEvent(input$leafmap_shape_click,{
 
 output$selectedHUC <- DT::renderDataTable({
   # Check if clicked_HUC is NULL (no shape clicked yet)
-  if(length(clicked_HUC())==0) {
-    return(NULL)  # Return NULL if no shape clicked
-  } else {
-    # Render the DataTable with the filtered data
-    DT::datatable(rownames = FALSE,data = filtered_huc())
-  }
+
+  req(nrow(filtered_huc())>=1)
+    
+  DT::datatable(height = 900,rownames = FALSE,
+                data= filtered_huc(),
+                extensions = 'Buttons',
+                filter = 'top',
+                options = list(
+                  lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                  dom = 'lfrtipB',
+                  buttons = c('copy', 'csv', 'excel')
+                )
+  ) 
+ 
 
   })
   
 
-
-output$selectedHUC_name <- renderText({
-  # Check if clicked_HUC is NULL (no shape clicked yet)
-    shiny::req(input$leafmap_shape_click)
-    # Render the DataTable with the filtered data
-    clicked_HUC() 
-  
-  
-})
+# 
+# output$selectedHUC_name <- renderText({
+#   # Check if clicked_HUC is NULL (no shape clicked yet)
+#     shiny::req(input$leafmap_shape_click)
+#     # Render the DataTable with the filtered data
+#     clicked_HUC() 
+#   
+#   
+# })
   
 
 # other card --------------------------------------------------------------
@@ -1956,6 +2004,172 @@ observe({
 #     )
 #   )
 # })
+
+
+# Toggle Cards ------------------------------------------------------------
+
+# # Server logic to toggle card visibility
+# observeEvent(input$toggle_card1, {
+#   shinyjs::toggle(id = "far_left")
+#   })
+# 
+# observeEvent(input$toggle_card2, {
+#   shinyjs::toggle(id = "center")
+#  
+#   
+# })
+# 
+# observeEvent(input$toggle_card3, {
+#   shinyjs::toggle(id = "leaflet_map")
+# 
+# })
+
+
+# card_width <- reactiveVal(1/3) # Default width
+# 
+# observe({
+#   num_cards <- sum(input$toggle_card1, input$toggle_card2,input$toggle_card3)
+#   if (num_cards == 1) {
+#     card_width(1)
+#   } else if (num_cards == 2) {
+#     card_width(1/2)
+#   } else if (num_cards >= 3) {
+#     card_width(1/3)
+#   } else {
+#     card_width(1/3) # Or any default value you want
+#   }
+# })
+
+
+output$card_layout <- renderUI({
+  
+  page_fillable(
+    class = "px-3 my-3",
+    
+    layout_sidebar(
+      sidebar = sidebar(width=400,
+        
+        card(fill = TRUE,
+             full_screen = TRUE,
+             height = 500,
+        style = "resize:both;height: 100%;",
+        id = "far_left",
+        card_header(shinyWidgets::pickerInput(width = '300px',
+         options = pickerOptions(
+           `count-selected-text` = "{0} Sites Selected",
+           container = "body",
+           actionsBox = TRUE,
+           liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
+         multiple = T,
+         inputId = "watersheds",
+         label = "HUC 12 Watersheds",
+         choices = huc12$Name,
+         #selected= filtered_huc()$Name,
+         choicesOpt = list(subtext = huc12$HUC12))),
+                            card_body(
+        uiOutput("acres_box")),
+         card_header(
+           checkboxGroupButtons(size = "xs",
+             inputId = "bmps_active",
+             selected = "Yes",
+             label = "Active BMPs",
+             choices = c("Yes", "No"),
+             checkIcon = list(
+               yes = tags$i(class = "fa fa-check-square",
+                            style = "color: #84563C"),
+               no = tags$i(class = "fa fa-square-o",
+                                  style = "color: #84563C")
+                                )
+                              )
+                            ),
+                        card_body(min_height = '100px',
+                        uiOutput("bmps_box",fill = "container"))
+                       )
+        ),#sidebar
+      layout_sidebar(
+        sidebar = sidebar(position = "right",
+                          width=400,
+          card(fill = TRUE,
+               height = 600,
+              id = "center",
+              full_screen = TRUE,
+              style = "resize:both;",
+              card_header(
+                shinyWidgets::pickerInput(
+                  width = '250px',
+                  options = pickerOptions(
+                    `count-selected-text` = "{0} Categories Selected",
+                    container = "body",
+                    actionsBox = TRUE,
+                    liveSearch = TRUE,
+                    selectedTextFormat = 'count > 1'
+                  ),
+                  # build buttons for collective selection
+                  multiple = T,
+                  inputId = "selectInput",
+                  label = "Category",
+                  choices = c(
+                    "Wildlife",
+                    "Aquifers",
+                    "Erosion",
+                    "BMPs",
+                    "Frequently Flooded Areas",
+                    "SRP",
+                    "Wetlands",
+                    "Geologically Hazardous Areas",
+                    "Landuse 2011",
+                    "Landuse 2019"
+                  )
+                )
+                # checkboxGroupButtons(
+                #           inputId = "selectInput",
+                #           label = "",
+                #           choices = c("Wildlife","Erosion","Frequently Flooded"),
+                #           status = "success"
+                              #         )
+                            ),
+                            bslib::accordion(
+                              id = "acc",
+                              list(
+                                uiOutput("bmps_table"),
+                                uiOutput("wildlife_box"),
+                                uiOutput("erosion_box"),
+                                uiOutput("wetlands_box"),
+                                uiOutput("flood_box"),
+                                uiOutput("land19_box"),
+                                uiOutput("srp_box"),
+                                uiOutput("land11_box"),
+                                uiOutput("aquifer_box"),
+                                uiOutput("geo_box")
+                              ),
+                            ),
+                       )
+          ),# 2nd sidebar
+                       # ),# -------end wildlife boxes
+                       
+                       card(
+                         height = 600,
+                         fill = TRUE,
+                         id = "leaflet_map",
+                         full_screen = TRUE,
+                         style = "resize:both;height: 100%;",
+                         card_body(leafletOutput("leafmap",height = 400))
+                       ),  #----- End leaflet map card-----
+                       
+        #value = "map_tab"
+        border_radius = FALSE,
+        fillable = TRUE,
+        class = "p-0"
+      )
+    )
+      
+         ) #---- End layout_column_wrap map------
+
+  # )
+})
+
+
+
 
 
 } #================ End Server===========================================-

@@ -84,7 +84,7 @@ app_ui <- function(request) {
     tags$head(
       tags$script(src = "https://code.highcharts.com/highcharts.js"),
       tags$script(src = "https://code.highcharts.com/modules/exporting.js"),
-      tags$script(src ="R/www/downloadLeafletMap.js")
+      tags$script(src ="R/www/downloadLeafletMap.js"),
       #tags$style(".leaflet-control.legend { display: none; }")
       
     ),
@@ -266,8 +266,27 @@ bslib::nav_panel(title = "Bacteria",
 
 # Watersheds --------------------------------------------------------------
 
-      bslib::nav_panel(title = "Watersheds Map",
+bslib::nav_panel(title = "Watersheds Map",
+      bslib::navset_tab(id = "watersheds_map_id",
+        bslib::nav_panel(
+                    title = "Watersheds Map",
+                       # fluidRow(
+                       # actionButton("toggle_card1", "Toggle Card 1"),
+                       # actionButton("toggle_card2", "Toggle Card 2"),
+                       # actionButton("toggle_card3", "Toggle Card 3")
+                       # ),
  
+                       uiOutput("card_layout")
+                  ),
+        bslib::nav_panel(title = "Watersheds Table",
+                    DT::dataTableOutput("selectedHUC")                 
+        )
+            
+            )
+        #),
+         
+      
+                  
 
 # start side panel --------------------------------------------------------
 # 
@@ -384,112 +403,9 @@ bslib::nav_panel(title = "Bacteria",
 #     ),
 # 
 # # end side panel                       
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                     
-                     
-# layout_column_wrap(
- layout_column_wrap(
-             card(full_screen = TRUE,
-               card_header(shinyWidgets::pickerInput(width = '380px',
-                             options = pickerOptions(
-                              `count-selected-text` = "{0} Sites Selected",
-                              container = "body",
-                              actionsBox = TRUE,
-                            liveSearch=TRUE,selectedTextFormat= 'count > 1'),   # build buttons for collective selection
-                           multiple = T,
-                           inputId = "watersheds",
-                           label = "HUC 12 Watersheds",
-                           choices = huc12$Name,
-                           #selected= filtered_huc()$Name,
-                           choicesOpt = list(subtext = huc12$HUC12))),
-             card_body(
-             uiOutput("acres_box")),
-             card_header(
-               checkboxGroupButtons(
-                 inputId = "bmps_active",
-                 selected = "Yes",
-                 label = "Active BMPs",
-                 choices = c("Yes", "No"),
-                 checkIcon = list(
-                   yes = tags$i(class = "fa fa-check-square",
-                                style = "color: #84563C"),
-                   no = tags$i(class = "fa fa-square-o",
-                               style = "color: #84563C")
-                 )
-               )
-               ),
-             card_body(min_height = '100px',uiOutput("bmps_box",fill = "container"))
-           ),
-card(
- full_screen = TRUE,
- style = "resize:both;",
- card_header(
-   shinyWidgets::pickerInput(
-     width = '380px',
-     options = pickerOptions(
-       `count-selected-text` = "{0} Categories Selected",
-       container = "body",
-       actionsBox = TRUE,
-       liveSearch = TRUE,
-       selectedTextFormat = 'count > 1'
-     ),
-     # build buttons for collective selection
-     multiple = T,
-     inputId = "selectInput",
-     label = "Category",
-     choices = c(
-       "Wildlife",
-       "Erosion",
-       "BMPs",
-       "Frequently Flooded Areas",
-       "SRP",
-       "Wetlands",
-       "Geologically Hazardous Areas",
-       "Landuse 2011",
-       "Landuse 2019"
-     )
-   )
-   # checkboxGroupButtons(
-   #           inputId = "selectInput",
-   #           label = "",
-   #           choices = c("Wildlife","Erosion","Frequently Flooded"),
-   #           status = "success"
-   #         )
- ),
- bslib::accordion(
-   id = "acc",
-   list(
-     uiOutput("bmps_table"),
-     uiOutput("wildlife_box"),
-     uiOutput("erosion_box"),
-     uiOutput("wetlands_box"),
-     uiOutput("flood_box"),
-     uiOutput("land19_box"),
-     uiOutput("srp_box"),
-     uiOutput("land11_box"),
-     uiOutput("geo_box")
-   ),
-   ),
- ),
- # ),# -------end wildlife boxes
 
- card(
-   fill = TRUE,
-   id = "leaflet_map",
-   full_screen = TRUE,
-   style = "resize:both;",
-   card_body(leafletOutput("leafmap"))
- ),  #----- End leaflet map card-----
 
- value = "map_tab"
-   ) #---- End layout_column_wrap map------
-   ), #---watersheds Nav Bar----
+), #---end watersheds Nav Bar----
 # CTUIR -------------------------------------------------------------------
 bslib::nav_panel(
   title = "River Restoration",
