@@ -24,6 +24,17 @@ suppressWarnings(
   )
 )
 
+# Land USe
+ag_conservation_areas <- data.table::fread("inst/huc_merge/ag_conservation_areas.csv") %>%
+  mutate(Ag_Acres=round(Ag_Acres,0))
+ag_geo_haz <- data.table::fread("inst/huc_merge/ag_geo_haz.csv")%>%
+  mutate(Ag_Acres=round(Ag_Acres,0))
+ag_crit_aquifer <- data.table::fread("inst/huc_merge/ag_crit_aquifer.csv")%>%
+  mutate(Ag_Acres=round(Ag_Acres,0))
+ag_frqflood <- data.table::fread("inst/huc_merge/ag_frqflood.csv")%>%
+  mutate(Ag_Acres=round(Ag_Acres,0))
+ag_wetlands<- data.table::fread("inst/huc_merge/ag_wetlands.csv")%>%
+  mutate(Ag_Acres=round(Ag_Acres,0))
 
 
 huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
@@ -2168,8 +2179,115 @@ output$card_layout <- renderUI({
   # )
 })
 
+output$critical_ag_output <-  renderUI({
+  
+ # req(input$critpick=="Wildlife")
+  if (input$critpick == "Wildlife") {
+  plot <- ag_conservation_areas %>%
+    hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = comname), 
+    stacking = "normal")
+  
+  #table <- DT::datatable(,rownames = FALSE)
+  
+  total_ac <- sum(ag_conservation_areas$Ag_Acres)
+  
+  table <-   DT::datatable(rownames = FALSE,
+                           data= ag_conservation_areas %>% select(-V1),
+                           extensions = 'Buttons',
+                           filter = 'top',
+                           options = list(
+                            lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                            dom = 'lfrtipB',
+                            buttons = c('copy', 'csv', 'excel')
+                           )) 
+  
+  co_percent <- round(total_ac/354243*100,2)
+  
+  layout_column_wrap(
+    card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
+         plot,full_screen = TRUE),
+    card(card_header(paste("Acres in Ag:",scales::comma(total_ac))),
+         card_body(table),full_screen = TRUE)
+  )
+  
+}
+  
+})
 
+output$wetlands_ag_output <-  renderUI({
+  
+  #req(input$critpick=="Wetlands")
+  if (input$critpick == "Wetlands") {
+  plot <- ag_wetlands %>%
+    hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = WETLAND_TY), 
+           stacking = "normal")
+  
+  table <-   DT::datatable(rownames = FALSE,
+                           data= ag_wetlands %>% select(-V1),
+                           extensions = 'Buttons',
+                           filter = 'top',
+                           options = list(
+                             lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                             dom = 'lfrtipB',
+                             buttons = c('copy', 'csv', 'excel')
+                           )) 
+  
+  total_ac <- sum(ag_wetlands$Ag_Acres)
+  co_percent <- round(total_ac/354243*100,2)
+  
+  layout_column_wrap(
+    card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
+         plot,full_screen = TRUE),
+    card(card_header(paste("Acres in Ag:",scales::comma(total_ac))),
+         card_body(table),full_screen = TRUE)
+  )
 
+  }
+  
+})
+
+# output$critical_ag_output <- renderUI({
+#  
+#    switch(input$critpick,
+#          "Wetlands" = uiOutput("wetlands_ag_output"),
+#          "Wildlife" = uiOutput("critical_ag_output")
+#          )
+# })
+
+output$geo_ag_output <-  renderUI({
+  
+  # req(input$critpick=="Wildlife")
+  if (input$critpick == "Geologic Hazard") {
+    plot <- ag_geo_haz %>%
+      hchart("column", hcaes(x = AQ1, y = Ag_Acres), 
+             stacking = "normal")
+    
+    #table <- DT::datatable(,rownames = FALSE)
+    
+    total_ac <- sum(ag_geo_haz$Ag_Acres)
+    
+    table <-   DT::datatable(rownames = FALSE,
+                             data= ag_geo_haz %>% select(-V1),
+                             extensions = 'Buttons',
+                             filter = 'top',
+                             options = list(
+                               lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                               dom = 'lfrtipB',
+                               buttons = c('copy', 'csv', 'excel')
+                             )) 
+    
+    co_percent <- round(total_ac/354243*100,2)
+    
+    layout_column_wrap(
+      card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
+           plot,full_screen = TRUE),
+      card(card_header(paste("Acres in Ag:",scales::comma(total_ac))),
+           card_body(table),full_screen = TRUE)
+    )
+    
+  }
+  
+})
 
 
 } #================ End Server===========================================-
