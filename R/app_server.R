@@ -1061,21 +1061,25 @@ output$acres_box <- renderUI({
       hc_xAxis(
         labels = list(
           style = list(
-            color = "#FFFFFF"  # Color of x-axis labels
+            color = "#FFFFFF" 
           )
         )) %>%
       hc_yAxis(
         labels = list(
           style = list(
-            color = "#FFFFFF"  # Color of x-axis labels
+            color = "#FFFFFF"  
           )
         ))%>%
       hc_legend(
         labels = list(
           style = list(
-            color = "#FFFFFF"  # Color of x-axis labels
+            color = "#FFFFFF"  
           )
-        ))
+        ))%>%
+      hc_exporting(
+        enabled = TRUE, 
+        allowHTML = TRUE  
+      )
  
      } else{
     chart <- NULL
@@ -2179,13 +2183,67 @@ output$card_layout <- renderUI({
   # )
 })
 
+
+
+# land cover --------------------------------------------------------------
+
+
+private_ag_2019 <- reactiveValues(value = 354543)
+county <- reactiveValues(value = 558037)
+
+
+observeEvent(input$corrected_checkbox, {
+  if (input$corrected_checkbox) {
+    private_ag_2019$value <- 334546
+  } else {
+    private_ag_2019$value <- 354543
+  }
+})
+
+output$ag_acres <- renderValueBox({
+  
+  valueBox(
+    "Private Ag Acres",
+    scales::comma(private_ag_2019$value),
+    icon = icon("tractor")
+  )
+  
+  
+})
+
+
+output$wildlife_box <- renderValueBox({
+  
+  req(input$critpick == "Wildlife")
+  
+  total_ac <- sum(ag_conservation_areas$Ag_Acres)
+  co_percent <- round(total_ac/private_ag_2019$value*100,2)
+  whole_county <- round(total_ac/county$value*100,2)
+  
+  
+  value_box(
+    title = "Wildlife",
+    value = scales::comma(round(total_ac,3)),
+    p(glue::glue("{co_percent} percent in Ag and {whole_county} percent of County")),
+    full_screen = TRUE,
+    theme = "success"
+  )
+  
+  
+})
+
+
 output$critical_ag_output <-  renderUI({
   
  # req(input$critpick=="Wildlife")
   if (input$critpick == "Wildlife") {
   plot <- ag_conservation_areas %>%
     hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = comname), 
-    stacking = "normal")
+    stacking = "normal")%>%
+    hc_exporting(
+      enabled = TRUE, 
+      allowHTML = TRUE  
+    )
   
   #table <- DT::datatable(,rownames = FALSE)
   
@@ -2201,7 +2259,7 @@ output$critical_ag_output <-  renderUI({
                             buttons = c('copy', 'csv', 'excel')
                            )) 
   
-  co_percent <- round(total_ac/354243*100,2)
+  co_percent <- round(total_ac/private_ag_2019$value*100,2)
   
   layout_column_wrap(
     card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
@@ -2214,13 +2272,40 @@ output$critical_ag_output <-  renderUI({
   
 })
 
+
+
+output$wetlands_box <- renderValueBox({
+  
+  req(input$critpick == "Wetlands")
+  
+  total_ac <- sum(ag_wetlands$Ag_Acres)
+  co_percent <- round(total_ac/private_ag_2019$value*100,2)
+  whole_county <- round(total_ac/county$value*100,2)
+  
+  
+  value_box(
+    title = "Wetlands",
+    value = scales::comma(round(total_ac,3)),
+    p(glue::glue("{co_percent} percent in Ag and {whole_county} percent of County")),
+    full_screen = TRUE,
+    theme = "success"
+  )
+  
+  
+})
+
+
 output$wetlands_ag_output <-  renderUI({
   
   #req(input$critpick=="Wetlands")
   if (input$critpick == "Wetlands") {
   plot <- ag_wetlands %>%
     hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = WETLAND_TY), 
-           stacking = "normal")
+           stacking = "normal")%>%
+    hc_exporting(
+      enabled = TRUE, 
+      allowHTML = TRUE  
+    )
   
   table <-   DT::datatable(rownames = FALSE,
                            data= ag_wetlands %>% select(-V1),
@@ -2233,7 +2318,7 @@ output$wetlands_ag_output <-  renderUI({
                            )) 
   
   total_ac <- sum(ag_wetlands$Ag_Acres)
-  co_percent <- round(total_ac/354243*100,2)
+  co_percent <- round(total_ac/private_ag_2019$value*100,2)
   
   layout_column_wrap(
     card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
@@ -2254,13 +2339,42 @@ output$wetlands_ag_output <-  renderUI({
 #          )
 # })
 
+output$geo_haz_box <- renderValueBox({
+  
+  req(input$critpick == "Geologic Hazard")
+  
+  total_ac <- sum(ag_geo_haz$Ag_Acres)
+  co_percent <- round(total_ac/private_ag_2019$value*100,2)
+  whole_county <- round(total_ac/county$value*100,2)
+  
+  
+  value_box(
+    title = "Geologic Hazards",
+    value = scales::comma(round(total_ac,3)),
+    p(glue::glue("{co_percent} percent in Ag and {whole_county} percent of County")),
+    full_screen = TRUE,
+    theme = "success"
+  )
+  
+  
+})
+
+
 output$geo_ag_output <-  renderUI({
   
   # req(input$critpick=="Wildlife")
   if (input$critpick == "Geologic Hazard") {
+    
+    
     plot <- ag_geo_haz %>%
+      group_by(AQ1) %>%
+      summarise(Ag_Acres=sum(Ag_Acres)) %>%
       hchart("column", hcaes(x = AQ1, y = Ag_Acres), 
-             stacking = "normal")
+             stacking = "normal")%>%
+      hc_exporting(
+        enabled = TRUE, 
+        allowHTML = TRUE  
+      )
     
     #table <- DT::datatable(,rownames = FALSE)
     
@@ -2276,7 +2390,7 @@ output$geo_ag_output <-  renderUI({
                                buttons = c('copy', 'csv', 'excel')
                              )) 
     
-    co_percent <- round(total_ac/354243*100,2)
+    co_percent <- round(total_ac/private_ag_2019$value*100,2)
     
     layout_column_wrap(
       card(card_header(paste("Percent of Ag:",scales::comma(co_percent))),
@@ -2289,6 +2403,70 @@ output$geo_ag_output <-  renderUI({
   
 })
 
+
+
+
+
+output$aquifer_ag_box <- renderValueBox({
+  
+  req(input$critpick == "Aquifers")
+    
+    total_ac <- sum(ag_crit_aquifer$Ag_Acres)
+    co_percent <- round(total_ac/private_ag_2019$value*100,2)
+    whole_county <- round(total_ac/county$value*100,2)
+    
+
+    value_box(
+      title = "Aquifers",
+      value = scales::comma(round(total_ac,3)),
+      p(glue::glue("{co_percent} percent in Ag and {whole_county} percent of County")),
+      full_screen = TRUE,
+      theme = "success"
+    )
+    
+  
+  })
+
+
+output$aquifer_ag_output <-  renderUI({
+  
+  # req(input$critpick=="Wildlife")
+  if (input$critpick == "Aquifers") {
+    
+    
+    plot <- ag_crit_aquifer %>%
+      hchart("column", hcaes(x = AQ1, y = Ag_Acres,group=Aquifer), 
+             stacking = "normal")%>%
+      hc_exporting(
+        enabled = TRUE, 
+        allowHTML = TRUE  
+      )
+    
+    #table <- DT::datatable(,rownames = FALSE)
+    
+    total_ac <- sum(ag_crit_aquifer$Ag_Acres)
+    
+    table <-   DT::datatable(rownames = FALSE,
+                             data= ag_crit_aquifer %>% select(-V1),
+                             extensions = 'Buttons',
+                             filter = 'top',
+                             options = list(
+                               lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                               dom = 'lfrtipB',
+                               buttons = c('copy', 'csv', 'excel')
+                             )) 
+    
+    co_percent <- round(total_ac/private_ag_2019$value*100,2)
+    
+    layout_column_wrap(
+      card(plot,full_screen = TRUE),
+      card(card_body(table),full_screen = TRUE)
+      
+    )
+    
+  }
+  
+})
 
 } #================ End Server===========================================-
 

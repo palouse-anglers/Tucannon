@@ -441,19 +441,31 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
 # Landcover ---------------------------------------------------------------
 
       bslib::nav_panel("Landcover", 
-                       shinyWidgets::pickerInput(width = '400px',
+                       fluidRow(
+                         column(1,shinyWidgets::pickerInput(width = '300px',
                        # build buttons for collective selection
                                                  multiple = FALSE,
                                                  inputId = "critpick",
                                                  label = "Critical Area", 
-                                                 choices = c("Wetlands","Wildlife","Geologic Hazard"),
-                                                 selected = "Wetlands"),
+                                                 choices = c("Wetlands","Wildlife","Geologic Hazard","Aquifers"),
+                                                 selected = "Wetlands")),
+                       column(1),
+                       valueBoxOutput("ag_acres"),
+                       column(1),
+                       valueBoxOutput("aquifer_ag_box"),
+                       valueBoxOutput("wetlands_box"),
+                       valueBoxOutput("geo_haz_box"),
+                       valueBoxOutput("wildlife_box")
+                                             
+                       ),
                        
+                       checkboxInput("corrected_checkbox", "Adjusted Acreage"),
             
                         #uiOutput("critical_ag_output"),
                         uiOutput("critical_ag_output"),
                         uiOutput("wetlands_ag_output"),
-                        uiOutput("geo_ag_output")
+                        uiOutput("geo_ag_output"),
+                        uiOutput("aquifer_ag_output")
                         
                        
                        ),#------Nav Bar--------
