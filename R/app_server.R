@@ -226,7 +226,7 @@ output$mrngo_stage_plot <- renderHighchart({
   
   req(length(input$monthRange)>=1)
   req(nrow(rve_mngo_water()>1))
-  req(input$navset_tabs_id == "Marengo")
+  req(input$navset_tabs_id == "Marengo DOE Gauge")
   
   mngo_smodel <- broom::augment(
     lm(Result ~ Date, data = rve_mngo_stage()
@@ -803,7 +803,7 @@ phos %>%
                       }
                             }"))%>%
      hc_yAxis(title = list(text = "mg/L")) %>%
-     hc_title(text = "Turbidity")%>%
+     hc_title(text = "Ammonia")%>%
      hc_exporting(enabled = TRUE, 
                   buttons = list(contextButton = list(menuItems = list(
                     list(
@@ -1180,6 +1180,8 @@ output$wildlife_box <- renderUI({
 
 })
 
+
+
 # geo box ------------------------------------------------------------
 
 geo_panels <- reactive({
@@ -1437,6 +1439,8 @@ output$bmps_table <- renderUI({
 })
 
 
+
+
 # bmps box ----------------------------------------------------------------
 
  
@@ -1500,49 +1504,75 @@ req(nrow(filtered_huc())>=1)
 })
 
 
-# bmps table --------------------------------------------------------------
-
-
-# output$bmps_plot <- renderUI({
-# 
-# 
-#   req(nrow(rve_bmps()>1))
-# 
-#     # DT::datatable(bmps %>%
-#     #               dplyr::filter(HUC12 %in% filtered_huc()$HUC12),
-#     #               options = list(dom = 't')
-#     #
-# 
-#   highcharter::hchart(
-#     rve_bmps()  %>%
-#       st_drop_geometry() %>%
-#       group_by(Project) %>%
-#       tally(),
-#     "column",
-#     hcaes(x = Project, y = n))%>%
-#     hc_exporting(enabled = TRUE,
+# output$bmps_stacked_wtshd <- renderHighchart({
+#   
+#   
+#   req(nrow(rve_bmps()>=1))
+#   
+#   bmps2 <- rve_bmps() %>%
+#     sf::st_drop_geometry() %>%
+#     group_by(Project) %>%
+#     tally()
+#   
+#   bmps2 %>%
+#     hchart("column", hcaes(x = Year, y = n, group = Project), 
+#            stacking = "normal")%>%
+#     hc_exporting(enabled = TRUE, 
 #                  buttons = list(contextButton = list(menuItems = list(
 #                    list(
 #                      textKey = "downloadPNG",
 #                      onclick = JS("function() { this.exportChart(); }")
 #                    )
-#                  ))))%>%
-#     hc_tooltip(formatter = JS("function(){
-# 
-#   if (this.series.name !== 'TMDL') {
-#                             return (
-#                             ' <br>Project: ' + this.point.Project +
-#                             ' <br>Count: ' + this.point.Count +''
-#                             );
-#   } else {
-#                         return false;
-#                       }
-#                             }"))
-# 
-# 
-# 
-# 
+#                  )))) 
+#   
+#   
+#   
 # })
+
+# bmps table watersheds --------------------------------------------------------------
+
+
+output$bmps_plot_watersheds <- renderUI({
+
+
+  req(nrow(rve_bmps()>1))
+
+    # DT::datatable(bmps %>%
+    #               dplyr::filter(HUC12 %in% filtered_huc()$HUC12),
+    #               options = list(dom = 't')
+    #
+
+  highcharter::hchart(
+    rve_bmps()  %>%
+      st_drop_geometry() %>%
+      group_by(Project) %>%
+      tally(),
+    "column",
+    hcaes(x = Project, y = n))%>%
+    hc_exporting(enabled = TRUE,
+                 buttons = list(contextButton = list(menuItems = list(
+                   list(
+                     textKey = "downloadPNG",
+                     onclick = JS("function() { this.exportChart(); }")
+                   )
+                 ))))%>%
+    hc_tooltip(formatter = JS("function(){
+
+  if (this.series.name !== 'TMDL') {
+                            return (
+                            ' <br>Project: ' + this.point.Project +
+                            ' <br>Count: ' + this.point.Count +''
+                            );
+  } else {
+                        return false;
+                      }
+                            }"))
+
+
+
+
+})
+
 # flood box ------------------------------------------------------------
 
 flood_panels <- reactive({
@@ -1619,7 +1649,7 @@ foundational_map <- reactive({
   leaflet(options = leafletOptions(
     attributionControl=FALSE)) %>%
     addTiles() %>%
-    setView(lat = 46.29929,lng = -118.02250,zoom = 9) %>%
+    setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
     addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",
                 options = leaflet::WMSTileOptions(
                   format = "image/png32",
@@ -1703,7 +1733,7 @@ observe({
 
 observeEvent(input$leafmap_shape_click,{
   
-  req(input$leafmap_shape_click$group == "watersheds")
+  req(input$leafmap_shape_click$group  %in% c("watersheds2","watersheds"))
   
   
   #print(watersheds_selected)
@@ -1836,12 +1866,15 @@ observe({
  # print(filtered_huc())
   
   map <- leafletProxy("leafmap") %>%
-    setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
-    clearShapes() %>%
+    #setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
+    
+    #clearShapes(-c("watersheds")) %>%
     clearMarkers() %>%
     clearControls() %>%
     clearGroup("bmp_layer") %>%
+    clearGroup("watersheds2") %>%
     removeControl(layerId = "bmp_layer") %>%
+    #clearBounds() %>%
     addMapPane("ames_points", zIndex = 490) %>% # shown below ames_circles
     addMapPane("ames_watersheds_selected", zIndex = 410) %>% # shown above ames_lines
     addMapPane("ames_watersheds", zIndex = 400) %>% # shown below ames_circles
@@ -1875,7 +1908,7 @@ observe({
                   textsize = "14px",
                   direction = "auto"))   %>%
        addPolygons(data=filtered_huc(),
-                group="watersheds",
+                group="watersheds2",
                 options = pathOptions(pane = "ames_watersheds"),
                 layerId = filtered_huc()$Name,
                 color = "red",
@@ -1966,10 +1999,10 @@ observe({
 
   
   
-  bounds <- filtered_huc() %>% 
-    st_bbox() %>% 
-    as.character()
-  
+  # bounds <- filtered_huc() %>% 
+  #   st_bbox() %>% 
+  #   as.list()
+  # 
 
   # set_zoom <- st_bbox(filtered_huc())
   # 
@@ -1978,12 +2011,19 @@ observe({
   # xmax <- max(set_zoom[3],na.rm = TRUE)
   # ymax <- max(set_zoom[4],na.rm = TRUE)
   # 
-   map <- map %>%
-     fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
+   
+  
+  
+  map <- map %>%
+    # flyToBounds(
+    #   lng1 = bounds$minx, lat1 = bounds$miny,
+    #   lng2 = bounds$maxx, lat2 = bounds$maxy,
+    #   animate = TRUE, duration = 1  # Adjust duration as needed
+    # ) %>% 
+     
+  #fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
      clearControls() 
-     #flyToBounds(xmin,ymin,xmax,ymax)
-
-   #print(filtered_huc())
+    
    
 })
 
@@ -2097,9 +2137,8 @@ output$card_layout <- renderUI({
                                 )
                               )
                             ),
-                        card_body(min_height = '100px',
-                        uiOutput("bmps_box",fill = "container"))
-                       )
+        card_body(min_height = '100px', uiOutput("bmps_box",fill = "container"))
+        #card_body(uiOutput("bmps_plot_watersheds",fill = "container"))
         ),#sidebar
       layout_sidebar(
         sidebar = sidebar(position = "right",
@@ -2212,7 +2251,7 @@ output$ag_acres <- renderValueBox({
 })
 
 
-output$wildlife_box <- renderValueBox({
+output$wildlife_box2 <- renderValueBox({
   
   req(input$critpick == "Wildlife")
   
@@ -2274,7 +2313,7 @@ output$critical_ag_output <-  renderUI({
 
 
 
-output$wetlands_box <- renderValueBox({
+output$wetlands_box2 <- renderValueBox({
   
   req(input$critpick == "Wetlands")
   

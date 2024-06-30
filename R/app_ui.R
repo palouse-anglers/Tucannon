@@ -122,6 +122,41 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                           selected = month.abb[c(1:12)])
                 ),
     bslib::navset_tab(id = "navset_tabs_id",
+                      
+                      bslib::nav_panel(title = "Realtime Flows",
+                                       card(
+                                         full_screen = TRUE,
+                                         title = "Tucannon-Starbuck 13344500",
+                                         card_header("Tucannon-Starbuck 13344500"),
+                                         status = "info",
+                                         width = "100%",
+                                         card_body(htmlOutput("iframe_starbuck")),
+                                         card_body(htmlOutput("iframe_ecymaps")),
+                                         card_header("Tucannon-Marengo 35B150"),
+                                         card_body(htmlOutput("iframe_marengo"))
+                                       )
+                      ),
+                      bslib::nav_panel(title = "Marengo DOE Gauge",#-------Start DO Tab----
+                                       layout_column_wrap(
+                                         card(
+                                           full_screen = TRUE,
+                                           style = "resize:both;",
+                                           card_header("Temperature"),
+                                           card_body(highchartOutput("mrngo_water_plot") %>%
+                                                       shinycssloaders::withSpinner(
+                                                         image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
+                                         ),
+                                         card(
+                                           full_screen = TRUE,
+                                           style = "resize:both;",
+                                           card_header("Stage Height"),
+                                           card_body(highchartOutput("mrngo_stage_plot")%>%
+                                                       shinycssloaders::withSpinner(
+                                                         image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
+                                           
+                                         )
+                                       )
+                      ),
                       bslib::nav_panel(title = "Temperature", #---Start Temp Tab-----
                                        layout_column_wrap(
                                          #width = 1/2,
@@ -166,24 +201,8 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                      card_body(highchartOutput("orthophos_plot")),
                     ))
           ), 
-bslib::nav_panel(title = "Table",
 
-                  DT::dataTableOutput("params_table")
-                 ),
-                
-          bslib::nav_panel(title = "Realtime Flows",
-            card(
-                             full_screen = TRUE,
-                             title = "Tucannon-Starbuck 13344500",
-                             card_header("Tucannon-Starbuck 13344500"),
-                             status = "info",
-                             width = "100%",
-                             card_body(htmlOutput("iframe_starbuck")),
-                             card_body(htmlOutput("iframe_ecymaps")),
-                             card_header("Tucannon-Marengo 35B150"),
-                             card_body(htmlOutput("iframe_marengo"))
-                             )
-                              ), # End flow nav panel
+ # End flow nav panel
           bslib::nav_panel(title = "TSS",
                            
                       card(
@@ -236,30 +255,13 @@ bslib::nav_panel(title = "Bacteria",
               card_header("BMPs Plot"),
               card_body(height = '65vh',highchartOutput("bmps_stacked"))
             ))
-            ), 
-         
+            ),
+       
+      bslib::nav_panel(title = "Table",
+                 DT::dataTableOutput("params_table"))
+
             
-             bslib::nav_panel(title = "Marengo",#-------Start DO Tab----
-                         layout_column_wrap(
-                           card(
-                             full_screen = TRUE,
-                             style = "resize:both;",
-                             card_header("Temperature"),
-                             card_body(highchartOutput("mrngo_water_plot") %>%
-                              shinycssloaders::withSpinner(
-                                image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
-                           ),
-                           card(
-                             full_screen = TRUE,
-                             style = "resize:both;",
-                             card_header("Stage Height"),
-                             card_body(highchartOutput("mrngo_stage_plot")%>%
-            shinycssloaders::withSpinner(
-            image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif"))
-                                       
-                                       )
-                           )
-                         )
+   
                          
         )
       ),
@@ -453,9 +455,9 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
                        valueBoxOutput("ag_acres"),
                        column(1),
                        valueBoxOutput("aquifer_ag_box"),
-                       valueBoxOutput("wetlands_box"),
+                       valueBoxOutput("wetlands_box2"),
                        valueBoxOutput("geo_haz_box"),
-                       valueBoxOutput("wildlife_box")
+                       valueBoxOutput("wildlife_box2")
                                              
                        ),
                        
@@ -469,7 +471,11 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
                         
                        
                        ),#------Nav Bar--------
-      bslib::nav_panel("Guidance", p("")),#------Nav Bar--------
+      bslib::nav_panel("Guidance",
+      p("Coming Soon")
+        #highchartOutput("bmps_plot_watersheds")
+                       
+                       ),#------Nav Bar--------
       bslib::nav_spacer(),
       #bslib::nav_spacer(),
       bslib::nav_menu(
