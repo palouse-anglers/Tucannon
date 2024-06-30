@@ -1426,17 +1426,47 @@ output$bmps_table <- renderUI({
   
   card(id = "bmps",
        height = "300px",
+       full_screen = TRUE,
        card_header("BMPs"),
        card_body(
          DT::datatable(data=rve_bmps() %>%
                          sf::st_drop_geometry() %>%
                          group_by(Project) %>%
-                         tally(),options = list(dom = 't'),rownames=FALSE))
+                         tally(),options = list(dom = 't'),rownames=FALSE)
+         ),
+       card_footer(actionButton("show_bmp_plot", "Show BMP Plot"))
+       # card_body(highchartOutput("bmps_plot_watersheds")
+       #           )
        )
   
   
   
 })
+
+observe({
+
+  if (nrow(rve_bmps())<1) {
+    shinyjs::hide("show_bmp_plot")
+  }
+  else{
+    shinyjs::show("show_bmp_plot")
+  }
+  
+})
+
+
+
+observeEvent(input$show_bmp_plot, {
+  showModal(modalDialog(
+    size = "xl",
+    id = "bmp_modal",
+    title = "BMP Plot",
+    highchartOutput("bmps_plot_watersheds")
+      )
+    )
+
+  })
+
 
 
 
@@ -1532,10 +1562,10 @@ req(nrow(filtered_huc())>=1)
 # bmps table watersheds --------------------------------------------------------------
 
 
-output$bmps_plot_watersheds <- renderUI({
+output$bmps_plot_watersheds <- renderHighchart({
 
 
-  req(nrow(rve_bmps()>1))
+  req(nrow(rve_bmps())>1)
 
     # DT::datatable(bmps %>%
     #               dplyr::filter(HUC12 %in% filtered_huc()$HUC12),
@@ -1545,33 +1575,15 @@ output$bmps_plot_watersheds <- renderUI({
   highcharter::hchart(
     rve_bmps()  %>%
       st_drop_geometry() %>%
-      group_by(Project) %>%
+      group_by(Name,Project) %>%
       tally(),
     "column",
-    hcaes(x = Project, y = n))%>%
-    hc_exporting(enabled = TRUE,
-                 buttons = list(contextButton = list(menuItems = list(
-                   list(
-                     textKey = "downloadPNG",
-                     onclick = JS("function() { this.exportChart(); }")
-                   )
-                 ))))%>%
-    hc_tooltip(formatter = JS("function(){
-
-  if (this.series.name !== 'TMDL') {
-                            return (
-                            ' <br>Project: ' + this.point.Project +
-                            ' <br>Count: ' + this.point.Count +''
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))
-
-
-
+    hcaes(x = Name, y = n, group=Project), 
+    stacking = "normal")%>%
+    hc_exporting(enabled = TRUE)
 
 })
+
 
 # flood box ------------------------------------------------------------
 
@@ -2137,9 +2149,11 @@ output$card_layout <- renderUI({
                                 )
                               )
                             ),
-        card_body(min_height = '100px', uiOutput("bmps_box",fill = "container"))
-        #card_body(uiOutput("bmps_plot_watersheds",fill = "container"))
-        ),#sidebar
+        card_body(min_height = '100px',
+                  uiOutput("bmps_box",fill = "container"))
+        ) # End Card
+       
+       ),#sidebar
       layout_sidebar(
         sidebar = sidebar(position = "right",
                           width=400,
