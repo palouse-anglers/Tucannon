@@ -26,15 +26,24 @@ suppressWarnings(
 
 # Land USe
 ag_conservation_areas <- data.table::fread("inst/huc_merge/ag_conservation_areas.csv") %>%
-  mutate(Ag_Acres=round(Ag_Acres,0))
+  mutate(Ag_Acres=round(Ag_Acres,0)) %>%
+  rename(`Primary Land Use`=AQ1,`Private Acres`=Ag_Acres, `Species/Habitat`=comname)
+
 ag_geo_haz <- data.table::fread("inst/huc_merge/ag_geo_haz.csv")%>%
-  mutate(Ag_Acres=round(Ag_Acres,0))
+  mutate(Ag_Acres=round(Ag_Acres,0)) %>%
+  rename(`Primary Land Use`=AQ1,`Private Acres`=Ag_Acres)
+
 ag_crit_aquifer <- data.table::fread("inst/huc_merge/ag_crit_aquifer.csv")%>%
-  mutate(Ag_Acres=round(Ag_Acres,0))
+  mutate(Ag_Acres=round(Ag_Acres,0))%>%
+  rename(`Primary Land Use`=AQ1,`Private Acres`=Ag_Acres)
+
 ag_frqflood <- data.table::fread("inst/huc_merge/ag_frqflood.csv")%>%
-  mutate(Ag_Acres=round(Ag_Acres,0))
+  mutate(Ag_Acres=round(Ag_Acres,0))%>%
+  rename(`Primary Land Use`=AQ1,`Private Acres`=Ag_Acres)
+
 ag_wetlands<- data.table::fread("inst/huc_merge/ag_wetlands.csv")%>%
-  mutate(Ag_Acres=round(Ag_Acres,0))
+  mutate(Ag_Acres=round(Ag_Acres,0))%>%
+  rename(`Primary Land Use`=AQ1,`Private Acres`=Ag_Acres, `Wetland Type`=WETLAND_TY)
 
 
 huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp",quiet = TRUE) %>%
@@ -1419,9 +1428,25 @@ output$land11_box <- renderUI({
   
 })
 
+
+observe({
+  
+if(nrow(rve_bmps())>1)
+shinyjs::show(id="show_bmp_plot")
+  
+})
+
 output$bmps_table <- renderUI({
   
   req("BMPs" %in% input$selectInput)
+  
+
+    if(nrow(rve_bmps())>1){
+    footer <- actionButton(inputId = "show_bmp_plot", "Show BMP Plot")
+    }else{
+    footer <- NULL
+    }
+  
   
   
   card(id = "bmps",
@@ -1434,7 +1459,9 @@ output$bmps_table <- renderUI({
                          group_by(Project) %>%
                          tally(),options = list(dom = 't'),rownames=FALSE)
          ),
-       card_footer(actionButton("show_bmp_plot", "Show BMP Plot"))
+       card_footer(
+           footer
+         )
        # card_body(highchartOutput("bmps_plot_watersheds")
        #           )
        )
@@ -1443,16 +1470,7 @@ output$bmps_table <- renderUI({
   
 })
 
-observe({
 
-  if (nrow(rve_bmps())<1) {
-    shinyjs::hide("show_bmp_plot")
-  }
-  else{
-    shinyjs::show("show_bmp_plot")
-  }
-  
-})
 
 
 
@@ -1749,14 +1767,14 @@ observeEvent(input$leafmap_shape_click,{
   
   
   #print(watersheds_selected)
-  print(clicked_HUC())
-  print(input$watersheds)
+  #print(clicked_HUC())
+  #print(input$watersheds)
   
   
   
   # capture the info of the clicked polygon
   click <- input$leafmap_shape_click
-  print(click)
+  #print(click)
   
   # subset to clicked
   clicked_HUC_data <- unique(as.character(huc12$Name[huc12$Name == click$id]))
@@ -1806,7 +1824,10 @@ output$selectedHUC <- DT::renderDataTable({
   req(nrow(filtered_huc())>=1)
     
   DT::datatable(height = 900,rownames = FALSE,
-                data= filtered_huc(),
+                data= filtered_huc() %>% 
+                  st_drop_geometry() %>%
+                  select(-c(X, fid_1, TNMID, VPUID, OID_))%>%
+                  select(Name,HUC12,everything()),
                 extensions = 'Buttons',
                 filter = 'top',
                 options = list(
@@ -1819,6 +1840,11 @@ output$selectedHUC <- DT::renderDataTable({
 
   })
   
+observe({
+  
+  print(filtered_huc())
+  
+})
 
 # 
 # output$selectedHUC_name <- renderText({
@@ -2269,7 +2295,7 @@ output$wildlife_box2 <- renderValueBox({
   
   req(input$critpick == "Wildlife")
   
-  total_ac <- sum(ag_conservation_areas$Ag_Acres)
+  total_ac <- sum(ag_conservation_areas$`Private Acres`)
   co_percent <- round(total_ac/private_ag_2019$value*100,2)
   whole_county <- round(total_ac/county$value*100,2)
   
@@ -2291,7 +2317,7 @@ output$critical_ag_output <-  renderUI({
  # req(input$critpick=="Wildlife")
   if (input$critpick == "Wildlife") {
   plot <- ag_conservation_areas %>%
-    hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = comname), 
+    hchart("column", hcaes(x = `Primary Land Use`, y = `Private Acres`, group = `Species/Habitat`), 
     stacking = "normal")%>%
     hc_exporting(
       enabled = TRUE, 
@@ -2331,7 +2357,7 @@ output$wetlands_box2 <- renderValueBox({
   
   req(input$critpick == "Wetlands")
   
-  total_ac <- sum(ag_wetlands$Ag_Acres)
+  total_ac <- sum(ag_wetlands$`Private Acres`)
   co_percent <- round(total_ac/private_ag_2019$value*100,2)
   whole_county <- round(total_ac/county$value*100,2)
   
@@ -2353,7 +2379,7 @@ output$wetlands_ag_output <-  renderUI({
   #req(input$critpick=="Wetlands")
   if (input$critpick == "Wetlands") {
   plot <- ag_wetlands %>%
-    hchart("column", hcaes(x = AQ1, y = Ag_Acres, group = WETLAND_TY), 
+    hchart("column", hcaes(x = `Primary Land Use`, y = `Private Acres`, group = `Wetland Type`), 
            stacking = "normal")%>%
     hc_exporting(
       enabled = TRUE, 
@@ -2370,7 +2396,7 @@ output$wetlands_ag_output <-  renderUI({
                              buttons = c('copy', 'csv', 'excel')
                            )) 
   
-  total_ac <- sum(ag_wetlands$Ag_Acres)
+  total_ac <- sum(ag_wetlands$`Private Acres`)
   co_percent <- round(total_ac/private_ag_2019$value*100,2)
   
   layout_column_wrap(
@@ -2396,7 +2422,7 @@ output$geo_haz_box <- renderValueBox({
   
   req(input$critpick == "Geologic Hazard")
   
-  total_ac <- sum(ag_geo_haz$Ag_Acres)
+  total_ac <- sum(ag_geo_haz$`Private Acres`)
   co_percent <- round(total_ac/private_ag_2019$value*100,2)
   whole_county <- round(total_ac/county$value*100,2)
   
@@ -2420,9 +2446,9 @@ output$geo_ag_output <-  renderUI({
     
     
     plot <- ag_geo_haz %>%
-      group_by(AQ1) %>%
-      summarise(Ag_Acres=sum(Ag_Acres)) %>%
-      hchart("column", hcaes(x = AQ1, y = Ag_Acres), 
+      group_by(`Primary Land Use`) %>%
+      summarise(`Private Acres`=sum(`Private Acres`)) %>%
+      hchart("column", hcaes(x = `Primary Land Use`, y = `Private Acres`), 
              stacking = "normal")%>%
       hc_exporting(
         enabled = TRUE, 
@@ -2431,7 +2457,7 @@ output$geo_ag_output <-  renderUI({
     
     #table <- DT::datatable(,rownames = FALSE)
     
-    total_ac <- sum(ag_geo_haz$Ag_Acres)
+    total_ac <- sum(ag_geo_haz$`Private Acres`)
     
     table <-   DT::datatable(rownames = FALSE,
                              data= ag_geo_haz %>% select(-V1),
@@ -2464,7 +2490,7 @@ output$aquifer_ag_box <- renderValueBox({
   
   req(input$critpick == "Aquifers")
     
-    total_ac <- sum(ag_crit_aquifer$Ag_Acres)
+    total_ac <- sum(ag_crit_aquifer$`Private Acres`)
     co_percent <- round(total_ac/private_ag_2019$value*100,2)
     whole_county <- round(total_ac/county$value*100,2)
     
@@ -2488,7 +2514,7 @@ output$aquifer_ag_output <-  renderUI({
     
     
     plot <- ag_crit_aquifer %>%
-      hchart("column", hcaes(x = AQ1, y = Ag_Acres,group=Aquifer), 
+      hchart("column", hcaes(x = `Primary Land Use`, y = `Private Acres`,group=Aquifer), 
              stacking = "normal")%>%
       hc_exporting(
         enabled = TRUE, 
@@ -2497,7 +2523,7 @@ output$aquifer_ag_output <-  renderUI({
     
     #table <- DT::datatable(,rownames = FALSE)
     
-    total_ac <- sum(ag_crit_aquifer$Ag_Acres)
+    total_ac <- sum(ag_crit_aquifer$`Private Acres`)
     
     table <-   DT::datatable(rownames = FALSE,
                              data= ag_crit_aquifer %>% select(-V1),

@@ -80,7 +80,6 @@ app_ui <- function(request) {
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
-    useShinyjs(), 
     tags$head(
       tags$script(src = "https://code.highcharts.com/highcharts.js"),
       tags$script(src = "https://code.highcharts.com/modules/exporting.js"),
@@ -90,6 +89,7 @@ app_ui <- function(request) {
     ),
     # Your application UI logic
     bslib::page_navbar(
+      useShinyjs(), 
       id = "navbar_items_id",
       theme = bs_theme(fg = "rgb(101, 78, 24)", primary = "#5E9300",
                        success = "#2c3e50", font_scale = NULL, bg = "#fff"),
@@ -444,24 +444,34 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
 
       bslib::nav_panel("Landcover", 
                        fluidRow(
-                         column(1,shinyWidgets::pickerInput(width = '300px',
+                         column(width = 4,
+                                style = "padding-right: 50px; padding-bottom: 10px;",
+                                shinyWidgets::pickerInput(width = '200px',
                        # build buttons for collective selection
                                                  multiple = FALSE,
                                                  inputId = "critpick",
                                                  label = "Critical Area", 
                                                  choices = c("Wetlands","Wildlife","Geologic Hazard","Aquifers"),
-                                                 selected = "Wetlands")),
-                       column(1),
-                       valueBoxOutput("ag_acres"),
-                       column(1),
+                                                 selected = "Wetlands"
+                       ),
+                       checkboxInput("corrected_checkbox", "Adjusted Acreage")
+                       ),
+                       #column(1),
+                       column(width = 4,
+                       valueBoxOutput("ag_acres")
+                       ),
+                       #column(1),
+                       column(width = 4,
                        valueBoxOutput("aquifer_ag_box"),
                        valueBoxOutput("wetlands_box2"),
                        valueBoxOutput("geo_haz_box"),
                        valueBoxOutput("wildlife_box2")
-                                             
-                       ),
                        
-                       checkboxInput("corrected_checkbox", "Adjusted Acreage"),
+                       )),
+                                             
+                     
+                       
+                       
             
                         #uiOutput("critical_ag_output"),
                         uiOutput("critical_ag_output"),
