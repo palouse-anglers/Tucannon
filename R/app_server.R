@@ -147,7 +147,19 @@ rve_params <- reactive({
   
   params %>%
   dplyr::filter(year(Date) >= input$dateRange[1] & year(Date) <= input$dateRange[2]) %>% 
-  dplyr::filter(Month %in% input$monthRange)
+  dplyr::filter(Month %in% input$monthRange) %>%
+    dplyr::left_join(bmps %>%
+                       sf::st_drop_geometry() %>%
+                       dplyr::group_by(Year) %>%
+                       dplyr::add_count(name = "No_BMPS") %>%
+                       ungroup()%>%
+                       tidyr::complete(Year = seq(1992,2022), 
+                                       fill = list("No_BMPS" = 0)) %>%
+                       dplyr::arrange(Year) %>%
+                       dplyr::distinct(Year,No_BMPS) %>%
+                       dplyr::ungroup() %>%
+                       dplyr::mutate(Cume_BMPs=cumsum(No_BMPS))
+            )
 
   })
   
@@ -377,7 +389,11 @@ output$do_plot <- renderHighchart({
    ) %>%
    arrange(Year,Month) %>%
    filter(Result >0) %>%
-   ungroup()
+   ungroup() %>%
+   left_join(rve_params() %>% 
+           distinct(Year,No_BMPS),
+             by="Year"
+             )
    
  
 })
@@ -467,12 +483,13 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
    req(input$navset_tabs_id == "Temperature")
    req(nrow(temp_params()>=1))
 
-
- 
-   hcboxplot(x=temp_params()$Result,
-                          var = temp_params()$Year,
-                          outliers = FALSE,name="Degrees C")%>% 
-   hc_chart(type = "column")%>%
+   
+   dat <- data_to_boxplot(temp_params(),
+                          group_var = Year,
+                          Result,name="Degrees C")
+   highchart() %>%
+   hc_xAxis(type = "category") %>%
+   hc_add_series_list(dat) %>%
    hc_title(text = "Quartiles")%>%
    hc_rangeSelector(enabled = FALSE)%>%
      hc_exporting(enabled = TRUE, 
@@ -491,8 +508,18 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
                       textKey = "downloadPNG",
                       onclick = JS("function() { this.exportChart(); }")
                     )
-                  ))))
- 
+                  )))) 
+        
+    # series2 <- 
+    #  temp_params() %>%
+    #  hchart(
+    #    type = "scatter",
+    #    hcaes(x = Year, y = No_BMPS)
+    #  )
+   
+  
+  
+   
  })
  
  output$by_year_scatter <- renderHighchart({
@@ -504,6 +531,12 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
   
   temp_model <- broom::augment(lm(Result ~ Year, data = temp_params()))
    
+  bmps_year <- 
+    rve_params() %>%
+    distinct(Year,No_BMPS) %>%
+    mutate(No_BMPS=ifelse(is.na(No_BMPS),0,No_BMPS),
+           Year=as.double(Year))
+  
    
   highcharter::hchart(
    temp_params() %>%
@@ -513,10 +546,14 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
    type="scatter",
    hcaes(x = Year, y = Result),
    name = "Degrees C",
+   tooltip = list(
+     headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+     pointFormat = "<b>{point.y} Celcius</b>"
+   ),
    showInLegend = TRUE
  )%>%
    hc_add_series(
-     tooltip = list(enabled = FALSE),
+     tooltip = list(FALSE),
      dashStyle = "Dash",
      data = temp_model,
      hcaes(x = Year, y = .fitted),
@@ -525,22 +562,24 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
      type = "line",
      color = "black"
    ) %>%
+    hc_add_series(name="BMPs",
+                data=bmps_year,
+                showInLegend = TRUE,
+                visible = FALSE,
+                      hcaes(x = Year, y= No_BMPS),
+                      type = "scatter",
+                color = "darkgreen",
+                tooltip = list(
+                  headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+                  pointFormat = "<b>{point.y} BMPs</b>"
+                )
+                  )%>%
+  
    hc_plotOptions(line = list(
      marker = list(
        enabled = FALSE
      )
    ))%>%
-   hc_tooltip(formatter = JS("function(){
-  
-  if (this.series.name !== 'Regression') {
-                            return (
-                            ' <br>Date: ' + this.point.Year +
-                            ' <br>Result: ' + this.point.Result +' Deg C'
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))%>%
    hc_yAxis(title = list(text = "Degrees C")) %>%
    hc_title(text = "Annual Average (scatter)") %>%
     hc_exporting(enabled = TRUE, 
@@ -554,6 +593,9 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
       backgroundColor = "#FFFFFF" 
     )
  
+
+  browser()
+  
   })
  
 
