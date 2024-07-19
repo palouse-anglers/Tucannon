@@ -1150,6 +1150,46 @@ output$erosion_box <- renderUI({
 
 
 
+# Change Detection --------------------------------------------------------
+
+# c
+change_panels <- reactive({
+  
+  change_vars <- huc12 %>%
+    select("Imperv","SImperv","TreeDec","TotalChg") %>%
+    names() %>% 
+    str_subset(pattern = "geometry",negate = TRUE)
+  
+  change_names <- c('Impervious Surface Increase',
+                    'Semi-Impervious Surface Increase',
+                    'Tree Loss', 'Total Change')
+  
+  total_huc_acre <-  sum(filtered_huc()$HUC_Acres)
+  
+  purrr::map2_dfr(
+    as.character(change_vars),as.character(change_names),~
+      data.frame(Change=.y,
+                 Acres=glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]],na.rm=TRUE), 0))}"),
+                 Percent=glue::glue("% {round(sum(filtered_huc()[[.x]],na.rm=TRUE)/total_huc_acre*100,2)}"))) 
+  
+  
+})
+
+
+output$change_box <- renderUI({ 
+  
+  req('Change Detection' %in% input$selectInput)
+  
+  
+  card(id="change_id",
+       height = "250px",
+       card_header("Change Detection"),
+       DT::datatable(change_panels(),options = list(dom = 't'),rownames=FALSE)
+  )
+  
+  
+})
+
 
 
 # wildlife box ------------------------------------------------------------
@@ -1679,7 +1719,7 @@ foundational_map <- reactive({
   leaflet(options = leafletOptions(
     attributionControl=FALSE)) %>%
     addTiles() %>%
-    setView(lat = 46.29929,lng = -118.02250,zoom = 10) %>%
+    setView(lat = 46.29979,lng = -118.02230,zoom = 9) %>%
     addWMSTiles(baseUrl = "https://basemap.nationalmap.gov/arcgis/services/USGSHydroCached/MapServer/WMSServer?",layers="0",
                 options = leaflet::WMSTileOptions(
                   format = "image/png32",
@@ -2206,6 +2246,7 @@ output$card_layout <- renderUI({
                     "Wildlife",
                     "Aquifers",
                     "Erosion",
+                    "Change Detection",
                     "BMPs",
                     "Frequently Flooded Areas",
                     "SRP",
@@ -2229,6 +2270,7 @@ output$card_layout <- renderUI({
                                 uiOutput("wildlife_box"),
                                 uiOutput("erosion_box"),
                                 uiOutput("wetlands_box"),
+                                uiOutput("change_box"),
                                 uiOutput("flood_box"),
                                 uiOutput("land19_box"),
                                 uiOutput("srp_box"),
