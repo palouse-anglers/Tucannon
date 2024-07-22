@@ -333,18 +333,43 @@ output$do_plot <- renderHighchart({
                     dashStyle = "Dash",
                     name = "TMDL",
                     color = "red") %>%
-      hc_tooltip(formatter = JS("function(){
-  
-  if (this.series.name !== 'TMDL') {
-                            return (
-                            ' <br>Date: ' + this.point.Date +
-                            ' <br>Result: ' + this.point.Result +' mg/L'
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))  %>%
-      hc_yAxis(title = list(text = "Dissolved Oxygen mg/L")) %>%
+    hc_yAxis_multiples(
+      list(title = list(text = "Dissolved Oxygen mg/L"), opposite = FALSE),
+      list(showLastLabel = TRUE, 
+           opposite = TRUE, 
+           title = list(text = "BMPs/Year"))
+    ) %>%   
+    hc_add_series(
+      name = "BMPs",
+      data = bmps_year() %>%
+        dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+      hcaes(x = Year, y = No_BMPS),
+      type = "areaspline",
+      fillOpacity = 0.3,
+      stacking = "normal",
+      zIndex = 0,
+      connectNulls = TRUE, 
+      color = "darkgreen",
+      yAxis = 1,
+      tooltip = list(
+        headerFormat = "<span style='font-size: 10px'>{point.key:%Y}</span><br/>",
+        pointFormat = "<b>{point.y} BMPs</b>"
+      ),
+      showInLegend = TRUE,
+      visible = FALSE
+    ) %>%
+  #     hc_tooltip(formatter = JS("function(){
+  # 
+  # if (this.series.name == 'TMDL') {
+  #                           return (
+  #                           ' <br>Date: ' + this.point.Date +
+  #                           ' <br>Result: ' + this.point.Result +' mg/L'
+  #                           );
+  # } else {
+  #                       return false;
+  #                     }
+  #                           }"))  %>%
+      #hc_yAxis(title = list(text = "Dissolved Oxygen mg/L")) %>%
       hc_title(text = "Powers Road") %>%
     hc_add_series(
       tooltip = list(enabled = FALSE),
@@ -521,6 +546,15 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
   
    
  })
+
+
+bmps_year <- reactive({ 
+  rve_params() %>%
+  distinct(Year,No_BMPS) %>%
+  mutate(No_BMPS=ifelse(is.na(No_BMPS),0,No_BMPS),
+         Year=as.double(Year))
+  
+})
  
  output$by_year_scatter <- renderHighchart({
  
@@ -531,13 +565,7 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
   
   temp_model <- broom::augment(lm(Result ~ Year, data = temp_params()))
    
-  bmps_year <- 
-    rve_params() %>%
-    distinct(Year,No_BMPS) %>%
-    mutate(No_BMPS=ifelse(is.na(No_BMPS),0,No_BMPS),
-           Year=as.double(Year))
-  
-   
+ 
   highcharter::hchart(
    temp_params() %>%
      group_by(Year)%>%
@@ -563,7 +591,7 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
      color = "black"
    ) %>%
     hc_add_series(name="BMPs",
-                data=bmps_year,
+                data=bmps_year(),
                 showInLegend = TRUE,
                 visible = FALSE,
                       hcaes(x = Year, y= No_BMPS),
@@ -573,7 +601,7 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
                   headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
                   pointFormat = "<b>{point.y} BMPs</b>"
                 )
-                  )%>%
+                  ) %>%
   
    hc_plotOptions(line = list(
      marker = list(
@@ -594,8 +622,6 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
     )
  
 
-  browser()
-  
   })
  
 
@@ -617,55 +643,82 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
    
   tss_model <- broom::augment(lm(Result ~ Date, data = tss))
    
-   
-   tss %>%
-     highcharter::hchart(
-       type="scatter",
-       hcaes(x = Date, y = Result),
-       name = "mg/L",
-       showInLegend = TRUE
-     )%>%
-     hc_add_series(
-       tooltip = list(enabled = FALSE),
-       dashStyle = "Dash",
-       data = tss_model,
-       hcaes(x = Date, y = .fitted),
-       showInLegend = TRUE,
-       name = "Regression",
-       type = "line",
-       color = "black"
-     )%>%
-     hc_plotOptions(line = list(
-       marker = list(
-         enabled = FALSE
-       )
-     ))%>%
-     hc_tooltip(formatter = JS("function(){
   
-  if (this.series.name !== 'Regression') {
-                            return (
-                            ' <br>Date: ' + this.point.Date +
-                            ' <br>Result: ' + this.point.Result +' mg/L'
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))%>%
-     hc_yAxis(title = list(text = "mg/L")) %>%
-     hc_title(text = "Total Suspended Solids")%>%
-     hc_exporting(enabled = TRUE, 
-                  buttons = list(contextButton = list(menuItems = list(
-                    list(
-                      textKey = "downloadPNG",
-                      onclick = JS("function() { this.exportChart(); }")
-                    )
-                  )))) %>%
-     hc_chart(
-       backgroundColor = "#FFFFFF" 
-     )
-   
- })
+  tss %>%
+    highcharter::hchart(
+      type = "scatter",
+      hcaes(x = Date, y = Result),
+      name = "mg/L",
+      showInLegend = TRUE
+    ) %>%
+    hc_yAxis_multiples(
+      list(title = list(text = "TSS mg/L"), opposite = FALSE),
+      list(showLastLabel = TRUE, 
+           opposite = TRUE, 
+           title = list(text = "BMPs/Year"))
+    ) %>%
+    hc_add_series(
+      data = tss_model,
+      hcaes(x = Date, y = .fitted),
+      name = "Regression",
+      type = "line",
+      color = "black",
+      tooltip = list(enabled = FALSE),
+      dashStyle = "Dash",
+      showInLegend = TRUE
+    ) %>%
+    hc_add_series(
+      name = "BMPs",
+      data = bmps_year() %>%
+        dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+      hcaes(x = Year, y = No_BMPS),
+      type = "areaspline",
+      fillOpacity = 0.3,
+      stacking = "normal",
+      zIndex = 0,
+      connectNulls = TRUE, 
+      color = "darkgreen",
+      yAxis = 1,
+      tooltip = list(
+        headerFormat = "<span style='font-size: 10px'>{point.key:%Y}</span><br/>",
+        pointFormat = "<b>{point.y} BMPs</b>"
+      ),
+      showInLegend = TRUE,
+      visible = FALSE
+    ) %>%
+    hc_plotOptions(
+      line = list(
+        marker = list(
+          enabled = FALSE
+        )
+      )
+    ) %>%
+    hc_title(
+      text = "Total Suspended Solids"
+    ) %>%
+    hc_exporting(
+      enabled = TRUE, 
+      buttons = list(
+        contextButton = list(
+          menuItems = list(
+            list(
+              textKey = "downloadPNG",
+              onclick = JS("function() { this.exportChart(); }")
+            )
+          )
+        )
+      )
+    ) %>%
+    hc_chart(
+      backgroundColor = "#FFFFFF"
+    ) %>%
+    hc_xAxis(
+      type = "datetime"
+    )
  
+  
+  })
+  
  # TSS ---------------------------------------------------------------------
  
  output$Turbidity_plot <- renderHighchart({
@@ -702,23 +755,48 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
        type = "line",
        color = "black"
      )%>%
+     hc_yAxis_multiples(
+       list(title = list(text = "Turbidity NTU"), opposite = FALSE),
+       list(showLastLabel = TRUE, 
+            opposite = TRUE, 
+            title = list(text = "BMPs/Year"))
+     )%>%   
+     hc_add_series(
+       name = "BMPs",
+       data = bmps_year() %>%
+         dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+       hcaes(x = Year, y = No_BMPS),
+       type = "areaspline",
+       fillOpacity = 0.3,
+       stacking = "normal",
+       zIndex = 0,
+       connectNulls = TRUE, 
+       color = "darkgreen",
+       yAxis = 1,
+       tooltip = list(
+         headerFormat = "<span style='font-size: 10px'>{point.key:%Y}</span><br/>",
+         pointFormat = "<b>{point.y} BMPs</b>"
+       ),
+       showInLegend = TRUE,
+       visible = FALSE
+     ) %>%
      hc_plotOptions(line = list(
        marker = list(
          enabled = FALSE
        )
      ))%>%
-     hc_tooltip(formatter = JS("function(){
-  
-  if (this.series.name !== 'Regression') {
-                            return (
-                            ' <br>Date: ' + this.point.Date +
-                            ' <br>Result: ' + this.point.Result +' NTU'
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))%>%
-     hc_yAxis(title = list(text = "NTU")) %>%
+  #    hc_tooltip(formatter = JS("function(){
+  # 
+  # if (this.series.name !== 'Regression') {
+  #                           return (
+  #                           ' <br>Date: ' + this.point.Date +
+  #                           ' <br>Result: ' + this.point.Result +' NTU'
+  #                           );
+  # } else {
+  #                       return false;
+  #                     }
+  #                           }"))%>%
+     #hc_yAxis(title = list(text = "NTU")) %>%
      hc_title(text = "Turbidity")%>%
      hc_exporting(enabled = TRUE, 
                   buttons = list(contextButton = list(menuItems = list(
