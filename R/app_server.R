@@ -398,7 +398,37 @@ output$do_plot <- renderHighchart({
     
   })
 
- 
+output$temp_line_annual <- renderHighchart({
+  
+  by_year  %>%
+    hc_yAxis_multiples(
+      list(title = list(text = "Temperature C"), opposite = FALSE),
+      list(showLastLabel = TRUE, 
+           opposite = TRUE, 
+           title = list(text = "BMPs/Year"))
+    )%>%   
+    hc_add_series(
+      name = "BMPs",
+      data = bmps_year(),
+     #   dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+      hcaes(x = Year, y = No_BMPS),
+      type = "areaspline",
+      fillOpacity = 0.3,
+      stacking = "normal",
+      zIndex = 0,
+      connectNulls = TRUE, 
+      color = "darkgreen",
+      yAxis = 1,
+      tooltip = list(
+        headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+        pointFormat = "<b>{point.y} BMPs</b>"
+      ),
+      showInLegend = TRUE,
+      visible = FALSE
+    ) 
+  
+
+  })
 
 # Reactive Temperature ----------------------------------------------------
 
@@ -524,6 +554,31 @@ hchart("column", hcaes(x = Year, y = n, group = Project),
                       onclick = JS("function() { this.exportChart(); }")
                     )
                   )))) %>%
+     # hc_yAxis_multiples(
+     #   list(title = list(text = "Temperature C"), opposite = FALSE),
+     #   list(showLastLabel = TRUE, 
+     #        opposite = TRUE, 
+     #        title = list(text = "BMPs/Year"))
+     # ) %>%   
+     # hc_add_series(
+     #   name = "BMPs",
+     #   data = bmps_year(),
+     #   #dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+     #   hcaes(x = Year, y = No_BMPS),
+     #   type = "areaspline",
+     #   fillOpacity = 0.3,
+     #   stacking = "normal",
+     #   zIndex = 0,
+     #   connectNulls = TRUE, 
+     #   color = "darkgreen",
+     #   yAxis = 1,
+     #   tooltip = list(
+     #     headerFormat = "<span style='font-size: 10px'>{point.key:%Y}</span><br/>",
+     #     pointFormat = "<b>{point.y} BMPs</b>"
+     #   ),
+     #   showInLegend = TRUE,
+     #   visible = FALSE
+     # ) %>%
      hc_chart(
        backgroundColor = "#FFFFFF" 
      ) %>%
@@ -590,25 +645,36 @@ bmps_year <- reactive({
      type = "line",
      color = "black"
    ) %>%
-    hc_add_series(name="BMPs",
-                data=bmps_year(),
-                showInLegend = TRUE,
-                visible = FALSE,
-                      hcaes(x = Year, y= No_BMPS),
-                      type = "scatter",
-                color = "darkgreen",
-                tooltip = list(
-                  headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
-                  pointFormat = "<b>{point.y} BMPs</b>"
-                )
-                  ) %>%
-  
-   hc_plotOptions(line = list(
+    hc_yAxis_multiples(
+      list(title = list(text = "Temperature C"), opposite = FALSE),
+      list(showLastLabel = TRUE, 
+           opposite = TRUE, 
+           title = list(text = "BMPs/Year"))
+    )%>%   
+    hc_add_series(
+      name = "BMPs",
+      data = bmps_year(),
+      hcaes(x = Year, y = No_BMPS),
+      type = "areaspline",
+      fillOpacity = 0.3,
+      stacking = "normal",
+      zIndex = 0,
+      connectNulls = TRUE, 
+      color = "darkgreen",
+      yAxis = 1,
+      tooltip = list(
+        headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+        pointFormat = "<b>{point.y} BMPs</b>"
+      ),
+      showInLegend = TRUE,
+      visible = FALSE
+    ) %>%
+    hc_plotOptions(line = list(
      marker = list(
        enabled = FALSE
      )
    ))%>%
-   hc_yAxis(title = list(text = "Degrees C")) %>%
+   #hc_yAxis(title = list(text = "Degrees C")) %>%
    hc_title(text = "Annual Average (scatter)") %>%
     hc_exporting(enabled = TRUE, 
                  buttons = list(contextButton = list(menuItems = list(
@@ -649,7 +715,11 @@ bmps_year <- reactive({
       type = "scatter",
       hcaes(x = Date, y = Result),
       name = "mg/L",
-      showInLegend = TRUE
+      showInLegend = TRUE,
+      tooltip = list(
+        headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+        pointFormat = "<b>{point.y} mg/L </b>"
+      ),
     ) %>%
     hc_yAxis_multiples(
       list(title = list(text = "TSS mg/L"), opposite = FALSE),
@@ -742,8 +812,12 @@ bmps_year <- reactive({
      highcharter::hchart(
        type="scatter",
        hcaes(x = Date, y = Result),
-       name = "mg/L",
-       showInLegend = TRUE
+       name = "NTU",
+       showInLegend = TRUE,
+       tooltip = list(
+         headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+         pointFormat = "<b>{point.y} NTU </b>"
+       ),
      )%>%
      hc_add_series(
        tooltip = list(enabled = FALSE),
@@ -835,6 +909,10 @@ phos %>%
   highcharter::hchart(
     type="scatter",
     hcaes(x = Date, y = Result),
+    tooltip = list(
+      headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+      pointFormat = "<b>{point.y} mg/L </b>"
+    ),
     name = "mg/L",
     showInLegend = TRUE
   )%>%
@@ -848,6 +926,31 @@ phos %>%
     type = "line",
     color = "black"
   )%>%
+  hc_yAxis_multiples(
+    list(title = list(text = "Total Phos. mg/L"), opposite = FALSE),
+    list(showLastLabel = TRUE, 
+         opposite = TRUE, 
+         title = list(text = "BMPs/Year"))
+  ) %>%   
+  hc_add_series(
+    name = "BMPs",
+    data = bmps_year() %>%
+    dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+    hcaes(x = Year, y = No_BMPS),
+    type = "areaspline",
+    fillOpacity = 0.3,
+    stacking = "normal",
+    zIndex = 0,
+    connectNulls = TRUE, 
+    color = "darkgreen",
+    yAxis = 1,
+    tooltip = list(
+      headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+      pointFormat = "<b>{point.y} BMPs</b>"
+    ),
+    showInLegend = TRUE,
+    visible = FALSE
+  ) %>%
   hc_plotOptions(line = list(
     marker = list(
       enabled = FALSE
@@ -864,7 +967,7 @@ phos %>%
                         return false;
                       }
                             }"))%>%
-  hc_yAxis(title = list(text = "mg/L")) %>%
+  #hc_yAxis(title = list(text = "mg/L")) %>%
   hc_title(text = "Total Phosphorus")%>%
   hc_exporting(enabled = TRUE, 
                buttons = list(contextButton = list(menuItems = list(
@@ -903,6 +1006,10 @@ phos %>%
        type="scatter",
        hcaes(x = Date, y = Result),
        name = "mg/L",
+       tooltip = list(
+         headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+         pointFormat = "<b>{point.y} mg/L</b>"
+       ),
        showInLegend = TRUE
      )%>%
      hc_add_series(
@@ -915,23 +1022,48 @@ phos %>%
        type = "line",
        color = "black"
      )%>%
+     hc_yAxis_multiples(
+       list(title = list(text = "NH3 mg/L"), opposite = FALSE),
+       list(showLastLabel = TRUE, 
+            opposite = TRUE, 
+            title = list(text = "BMPs/Year"))
+     )%>%   
+     hc_add_series(
+       name = "BMPs",
+       data = bmps_year() %>%
+         dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+       hcaes(x = Year, y = No_BMPS),
+       type = "areaspline",
+       fillOpacity = 0.3,
+       stacking = "normal",
+       zIndex = 0,
+       connectNulls = TRUE, 
+       color = "darkgreen",
+       yAxis = 1,
+       tooltip = list(
+         headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+         pointFormat = "<b>{point.y} BMPs</b>"
+       ),
+       showInLegend = TRUE,
+       visible = FALSE
+     ) %>%
      hc_plotOptions(line = list(
        marker = list(
          enabled = FALSE
        )
      ))%>%
-     hc_tooltip(formatter = JS("function(){
-  
-  if (this.series.name !== 'Regression') {
-                            return (
-                            ' <br>Date: ' + this.point.Date +
-                            ' <br>Result: ' + this.point.Result +' mg/L'
-                            );
-  } else {
-                        return false;
-                      }
-                            }"))%>%
-     hc_yAxis(title = list(text = "mg/L")) %>%
+  #    hc_tooltip(formatter = JS("function(){
+  # 
+  # if (this.series.name !== 'Regression') {
+  #                           return (
+  #                           ' <br>Date: ' + this.point.Date +
+  #                           ' <br>Result: ' + this.point.Result +' mg/L'
+  #                           );
+  # } else {
+  #                       return false;
+  #                     }
+  #                           }"))%>%
+     #hc_yAxis(title = list(text = "mg/L")) %>%
      hc_title(text = "Ammonia")%>%
      hc_exporting(enabled = TRUE, 
                   buttons = list(contextButton = list(menuItems = list(
@@ -971,6 +1103,31 @@ phos %>%
        hcaes(x = Date, y = Result,group=Param, name=Param),
        showInLegend = TRUE
      )%>%
+     hc_yAxis_multiples(
+       list(title = list(text = "CFU/100mL"), opposite = FALSE),
+       list(showLastLabel = TRUE, 
+            opposite = TRUE, 
+            title = list(text = "BMPs/Year"))
+     )%>%   
+     hc_add_series(
+       name = "BMPs",
+       data = bmps_year() %>%
+         dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+       hcaes(x = Year, y = No_BMPS),
+       type = "areaspline",
+       fillOpacity = 0.3,
+       stacking = "normal",
+       zIndex = 0,
+       connectNulls = TRUE, 
+       color = "darkgreen",
+       yAxis = 1,
+       tooltip = list(
+         headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+         pointFormat = "<b>{point.y} BMPs</b>"
+       ),
+       showInLegend = TRUE,
+       visible = FALSE
+     ) %>%
      hc_add_series(
        tooltip = list(enabled = FALSE),
        dashStyle = "Dash",
@@ -997,7 +1154,7 @@ phos %>%
                         return false;
                       }
                             }"))%>%
-     hc_yAxis(title = list(text = "CFU/100mL")) %>%
+     #hc_yAxis(title = list(text = "CFU/100mL")) %>%
      hc_title(text = "Bacteria")%>%
      hc_exporting(enabled = TRUE, 
                   buttons = list(contextButton = list(menuItems = list(
