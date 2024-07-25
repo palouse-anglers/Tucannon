@@ -161,7 +161,7 @@ bslib::nav_panel(title = "Water Quality", #---------------Nav Bar------
                                        layout_column_wrap(
                                          #width = 1/2,
                                          #height = 300,
-                                         card(full_screen = TRUE, card_header(""), card_body(by_year)),
+                                         card(full_screen = TRUE, card_header(""), card_body(highchartOutput("temp_line_annual"))),
                                          card(full_screen = TRUE, card_header(""), card_body(highchartOutput("by_year_box"))),
                                          card(full_screen = TRUE, card_header(""), card_body(by_summer)),
                                          card(full_screen = TRUE, card_header(""), 

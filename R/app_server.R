@@ -1285,7 +1285,7 @@ output$iframe_ecymaps <- renderUI({
 output$iframe_ctuir_geo <- renderUI({
   iframe_tag <- tags$iframe(
     src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=799651538e3f4cacb540a7ec8fba1ce7",  
-    style='width:95vw;height:90vh;'
+    style='width:90vw;height:90vh;'
   )
   
 })
@@ -1298,7 +1298,7 @@ output$iframe_ctuir_rest <- renderUI({
   
   iframe_tag <- tags$iframe(
     src = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5",  
-    style='width:95vw;height:90vh;'
+    style='width:90vw;height:90vh;'
   )
   
 })
@@ -2453,13 +2453,13 @@ observe({
 
 output$card_layout <- renderUI({
   
-  page_fillable(
-    class = "px-3 my-3",
-    
-    layout_sidebar(
-      sidebar = sidebar(width=400,
+  # page_fillable(
+  #   class = "px-3 my-3",
+  #   
+  #   layout_sidebar(
+  #     sidebar = sidebar(width=400,
         
-        card(fill = TRUE,
+       a <-  card(fill = TRUE,
              full_screen = TRUE,
              height = 500,
         style = "resize:both;height: 100%;",
@@ -2496,11 +2496,11 @@ output$card_layout <- renderUI({
                   uiOutput("bmps_box",fill = "container"))
         ) # End Card
        
-       ),#sidebar
-      layout_sidebar(
-        sidebar = sidebar(position = "right",
-                          width=400,
-          card(fill = TRUE,
+   #    ),#sidebar
+      # layout_sidebar(
+      #   sidebar = sidebar(position = "right",
+      #                     width=400,
+        b <-   card(fill = TRUE,
                height = 600,
               id = "center",
               full_screen = TRUE,
@@ -2554,31 +2554,38 @@ output$card_layout <- renderUI({
                                 uiOutput("land11_box"),
                                 uiOutput("aquifer_box"),
                                 uiOutput("geo_box")
-                              ),
-                            ),
+                              )
+                            )
                        )
-          ),# 2nd sidebar
-                       # ),# -------end wildlife boxes
+          # ),# 2nd sidebar
+          #              # ),# -------end wildlife boxes
                        
-                       card(
+                    c <-  card(
                          height = 600,
                          fill = TRUE,
                          id = "leaflet_map",
                          full_screen = TRUE,
                          style = "resize:both;height: 100%;",
                          card_body(leafletOutput("leafmap",height = 400))
-                       ),  #----- End leaflet map card-----
+                         )
+                       # ),  #----- End leaflet map card-----
                        
-        #value = "map_tab"
-        border_radius = FALSE,
-        fillable = TRUE,
-        class = "p-0"
-      )
-    )
-      
-         ) #---- End layout_column_wrap map------
+    #     #value = "map_tab"
+    #     border_radius = FALSE,
+    #     fillable = TRUE,
+    #     class = "p-0"
+    #   )
+    # )
+    #   
+    #      ) #---- End layout_column_wrap map------
 
   # )
+  
+  page_fillable(
+    layout_columns(a,b,c)
+  )
+
+    
 })
 
 
