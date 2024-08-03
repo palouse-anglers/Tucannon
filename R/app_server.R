@@ -24,6 +24,8 @@ suppressWarnings(
   )
 )
 
+
+
 # Land USe
 ag_conservation_areas <- data.table::fread("inst/huc_merge/ag_conservation_areas.csv") %>%
   mutate(Ag_Acres=round(Ag_Acres,0)) %>%
@@ -75,7 +77,7 @@ geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp",quiet = TRUE
 freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp",quiet = TRUE) %>%
   select(SYMBOL,Acrs_n_)
 
-
+huc_12_labels <- data.table::fread("R/data_processing/data_labels_HUC12.csv")
 
 
 # pr_ag23 <- sf::st_read("../../Downloads/Layers/Private_Ag_23.shp",quiet = TRUE) %>%
@@ -189,6 +191,16 @@ rve_mngo_stage <- reactive({
   
 })
  
+
+
+# HUC 12 Labels -----------------------------------------------------------
+
+output$huclabels <- renderDataTable({
+  
+  DT::datatable(huc_12_labels)
+  
+  
+})
 
 # Marengo Water Temp ------------------------------------------------------
 

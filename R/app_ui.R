@@ -87,6 +87,7 @@ app_ui <- function(request) {
       #tags$style(".leaflet-control.legend { display: none; }")
       
     ),
+    
     # Your application UI logic
     bslib::page_navbar(
       useShinyjs(), 
@@ -482,8 +483,8 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
                        
                        ),#------Nav Bar--------
       bslib::nav_panel("Guidance",
-      p("Coming Soon")
-        #highchartOutput("bmps_plot_watersheds")
+      dataTableOutput("huclabels")
+      
                        
                        ),#------Nav Bar--------
       bslib::nav_spacer(),
@@ -494,8 +495,8 @@ the extent of interests of the Confederated Tribes of Umatilla Indian Reservatio
         bslib::nav_item(link_shiny),
         bslib::nav_item(link_posit)
       )
-    )
-  )
+    ) 
+  ) 
 }
 
 #' Add external Resources to the Application
