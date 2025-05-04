@@ -17,14 +17,14 @@ iframeServer <- function(id, url, style) {
 
 
 # usage
-ui <- shiny::fluidPage(
-  iframeUI("myiframe")
-)
-
-server <- function(input, output, session) {
-  iframeServer("myiframe", 
-               url = "https://www.wikipedia.org", 
-               style = 'width:90vw;height:90vh;')
-}
-
-shiny::shinyApp(ui, server)
+# ui <- shiny::fluidPage(
+#   iframeUI("myiframe")
+# )
+# 
+# server <- function(input, output, session) {
+#   iframeServer("myiframe", 
+#                url = "https://www.wikipedia.org", 
+#                style = 'width:90vw;height:90vh;')
+# }
+# 
+# shiny::shinyApp(ui, server)
