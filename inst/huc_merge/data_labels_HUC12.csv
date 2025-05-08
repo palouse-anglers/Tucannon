@@ -1,0 +1,83 @@
+Variable,Description,Source
+FID,GIS unique identifier ,HUC12_Metrics_All.shp
+fid_1,GIS unique identifier ,HUC12_Metrics_All.shp
+OBJECTID,GIS unique identifier ,HUC12_Metrics_All.shp
+TNMID,The National Map Identification ,HUC12_Metrics_All.shp
+MetaSource,Source of Hydro Data,HUC12_Metrics_All.shp
+LoadDate,Date of Update of TNM data,HUC12_Metrics_All.shp
+AreaSqKm,Polygon area (square kilometers) not cropped to Columbia County ,HUC12_Metrics_All.shp
+AreaAcres,Polygon area (Acres) not cropped to Columbia County ,HUC12_Metrics_All.shp
+Name,Watershed Name,HUC12_Metrics_All.shp
+States,State Located,HUC12_Metrics_All.shp
+HUC12,HUC Number,HUC12_Metrics_All.shp
+HUType,HUC Type,HUC12_Metrics_All.shp
+HUMod,,HUC12_Metrics_All.shp
+ToHUC,Water flows to this HUC,HUC12_Metrics_All.shp
+Shape_Leng,Polygon perimeter (ft) not cropped to columbia County ,HUC12_Metrics_All.shp
+Shape_Area,Polygon area (square ft) not cropped to Columbia County ,HUC12_Metrics_All.shp
+NHDPlusID,National Hydrogrpahy Dataset Plus identification ,HUC12_Metrics_All.shp
+VPUID,,HUC12_Metrics_All.shp
+SRP_NUM,SRP Project Number ,HUC12_Metrics_All.shp
+SRP_NAME,SRP Project Name,HUC12_Metrics_All.shp
+SRP_Metric,SRP best management Practice type,HUC12_Metrics_All.shp
+SRP_ACRES,SRP recorded BMP Acreage ,HUC12_Metrics_All.shp
+OID_,GIS Identifier for join,HUC12_Metrics_All.shp
+HUC_Acres,Acres recalculated for Columbia County Clip,HUC12_Metrics_All.shp
+Mod_Ac_Wtr,Moderate water erosion (forpehrtdc)(Total Acres),HUC12_Metrics_All.shp
+Moderate_W,Moderate water erosion  (forpehrtdc)Percentage of coverage in HUC,HUC12_Metrics_All.shp
+Severe_Ac_,Severe water erosion (forpehrtdc)(Total Acres),HUC12_Metrics_All.shp
+Severe_Wtr,Severe water erosion  (forpehrtdc)Percentage of coverage in HUC,HUC12_Metrics_All.shp
+No_WtrEr_Ac,Areas with no or slight water erosion  in HUC (Total Acres),HUC12_Metrics_All.shp
+No_WtrEr,Areas with no or slight water erosion Percentage of coverage in HUC,HUC12_Metrics_All.shp
+Acres_Weg,Acres of wind erosion group (Categrories 1-4),HUC12_Metrics_All.shp
+Perc_Weg,Wind erosion group (1-4) Percentage of coverage in HUC,HUC12_Metrics_All.shp
+No_Weg_Ac,Areas with low Wind Erosion Group (5+) in HUC (Total Acres),HUC12_Metrics_All.shp
+No_Weg,Areas with low Wind Erosion Group (5+) Percentage of coverage in HUC,HUC12_Metrics_All.shp
+Notes,Notes about Soil data,HUC12_Metrics_All.shp
+Source,Soil data source,HUC12_Metrics_All.shp
+RM_Elk_Ac,Rocky Mountain Elk acreage in HUC,columbia-critical-conservation-areas.shp
+RM_Elk_Per,Rocky Mountain Elk Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+Mule_Dr_Ac,Mule Deer acreage in HUC,columbia-critical-conservation-areas.shp
+Mule_Deer_,Mule Deer Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+NWWT_Dr_Ac,North-West White Tailed Deer acreage in HUC,columbia-critical-conservation-areas.shp
+NW_WT_Deer,North-West White Tailed Deer Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+RN_Phea_Ac,Ring Necked Pheasant acreage in HUC,columbia-critical-conservation-areas.shp
+RN_Pheasan,Ring Necked Pheasant Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+WtrFowl_Ac,Waterfowl acreage in HUC,columbia-critical-conservation-areas.shp
+WtrFowl_Pe,Waterfowl Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+Cliff_Ac,Cliff/Bluff Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+Cliff_Bluf,Cliff/Bluff Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+Chuckar_Ac,Chucker acreage in HUC,columbia-critical-conservation-areas.shp
+Chukar_Per,Chucker Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+BHSheep_Ac,Big Horn Sheep acreage in HUC,columbia-critical-conservation-areas.shp
+BH_Sheep_P,Big Horn Sheep Percentage of coverage in HUC,columbia-critical-conservation-areas.shp
+Freshwater.Emergent.Wetland      ,Emergent Wetland acres in HUC,columbia-wetlands.shp
+Freshwater.Forested.Shrub.Wetland,Freshwater Forested Wetland acres in HUC,columbia-wetlands.shp
+Freshwater.Pond                 ,Pond Wetland acres in HUC,columbia-wetlands.shp
+Lake                            ,Lake Wetland acres in HUC,columbia-wetlands.shp
+Other                            ,Other Wetland acres in HUC,columbia-wetlands.shp
+Riverine,River Wetland acres in HUC,columbia-wetlands.shp
+FLDACRE,Frequently Flooded acres in HUC,columbia-frequently-flooded.shp
+GEOMOD,Moderate Geologic Hazard acres in HUC,columbia-geologic-hazard.shp
+GEONR,Not Rated Geologic Hazard acres in HUC,columbia-geologic-hazard.shp
+GEOSEV,Severe Geologic Hazard acres in HUC,columbia-geologic-hazard.shp
+GEOSLI,Slight Geologic Hazard acres in HUC,columbia-geologic-hazard.shp
+GEONA,Not Applicable Geologic Hazard acres in HUC,columbia-geologic-hazard.shp
+Crops...Dryland,Land Use 2011 Dryland acres in HUC,Landcover_11_Private.shp
+Non.Ag.Land,Land Use 2011 Non ag acres in HUC,Landcover_11_Private.shp
+Rangeland,Land Use 2011 Range acres in HUC,Landcover_11_Private.shp
+Crops...Irrigated,Land Use 2011 Irrigated Crops acres in HUC,Landcover_11_Private.shp
+Open.Space,Land Use 2011 Open Space acres in HUC,Landcover_11_Private.shp
+Open.Water,Land Use 2011 Open Water acres in HUC,Landcover_11_Private.shp
+Crops...Dryland_19,Land Use 2019 Dryland acres in HUC,Landcover_19_Private.shp
+Cultivated.Crops_19,Land Use 2019 Cultivated Crops  acres in HUC,Landcover_19_Private.shp
+Rangeland_19,Land Use 2019 Rangeland acres in HUC,Landcover_19_Private.shp
+Crops...Irrigated_19,Land Use 2019 Irrigated crops acres in HUC,Landcover_19_Private.shp
+Crops...Dryland_AQCLASS19,Land Use 2019 Dryland acres in HUC AQ Classifier,Landcover_19_Private.shp
+NA_AQCLASS19,Land Use 2019 NA acres in HUC AQ Classifier,Landcover_19_Private.shp
+Crops...Irrigated_AQCLASS19,Land Use 2019 Irrigated Crops acres in HUC AQ Classifier,Landcover_19_Private.shp
+Ground.Water...Well_Aquifer,Critical Aquifer acres in HUC,columbia-critical-aquifer.shp
+Imperv,Impervious acres in HUC,High_Resolution_Change_Detection.shp
+SImperv,Semi Impervious acres in HUC,High_Resolution_Change_Detection.shp
+TreeDec,Change Detection: Decreasing Tree Coverage acres in HUC,High_Resolution_Change_Detection.shp
+TotalChg,Change Detection: Total Change acreage in HUC,High_Resolution_Change_Detection.shp
