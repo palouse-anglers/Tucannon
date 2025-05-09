@@ -41,15 +41,8 @@ text_boxes <- list(
 
 # Data ----
 
-# Following some from droplet > Tucannon-VSP > calc_acre_in_hu6
-acres_in_huc <- function(huc_layer,shape){
-  
-  sf::st_intersection(huc_layer, shape) %>%
-    dplyr::mutate(Acres_in_huc = as.numeric(units::set_units(sf::st_area(.), "acre"))) 
-  
-}
 
-# Land use ----
+## Land use ----
 
 ag_conservation_areas <- data.table::fread("inst/huc_merge/ag_conservation_areas.csv") %>%
   dplyr::mutate(Ag_Acres = round(Ag_Acres, 0)) %>%
@@ -82,16 +75,17 @@ ag_wetlands <- data.table::fread("inst/huc_merge/ag_wetlands.csv") %>%
     `Wetland Type` = WETLAND_TY
   )
 
-
 huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp", quiet = TRUE) %>%
   dplyr::select(HUC12) %>%
-  tidyr::left_join(
+  dplyr::left_join(
     read.csv("inst/huc_merge/HUC12_reworked3.csv") %>%
       mutate(HUC12 = as.character(HUC12)),
     by = "HUC12"
   )
 
 names_huc12 <- names(huc12)
+
+huc_12_labels <- data.table::fread("inst/huc_merge/data_labels_HUC12.csv")
 
 stations <- sf::st_read("inst/huc_merge/stations.shp", quiet = TRUE)
 
@@ -109,7 +103,6 @@ geo_hazard <- sf::st_read("inst/huc_merge/geo_hazard_huc_merge.shp", quiet = TRU
 freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp", quiet = TRUE) %>%
   dplyr::select(SYMBOL, Acrs_n_)
 
-huc_12_labels <- data.table::fread("R/data_processing/data_labels_HUC12.csv")
 
 # BMPs ----
 
@@ -121,7 +114,7 @@ bmps <- bmp_points %>%
   dplyr::bind_rows(bmp_lines) %>%
   dplyr::bind_rows(bmp_shape) %>%
   dplyr::mutate(
-    active = tidyr::replace_na(ifelse(activty=="ACTIVE", "Yes", "No"), "No"),
+    active = tidyr::replace_na(ifelse(activty == "ACTIVE", "Yes", "No"), "No"),
     project = dplyr::case_when(
       stringr::str_detect(project, "METER") ~ "FLOW METER",
       stringr::str_detect(project, "DEVELOPMENT") ~ "WATER DEVELOPMENT",
@@ -136,7 +129,7 @@ bmps <- bmp_points %>%
     Type = type,
     ID = Cntr_ID
   ) %>%
-tidyr::left_join(huc12 %>%
+  dplyr::left_join(huc12 %>%
             select(HUC12, Name) %>%
             sf::st_drop_geometry(), by="HUC12")
 
@@ -144,12 +137,12 @@ tidyr::left_join(huc12 %>%
 ### Marengo ----
 # station_water previously called marengo_water
 # TODO update path
-station_water <- data.table::fread("R/data_processing/marengo_water.csv") %>%
-  splyr::mutate(Date = lubridate::ymd(Date))
+station_water <- data.table::fread("inst/marengo_processed/marengo_water.csv") %>%
+  dplyr::mutate(Date = lubridate::ymd(Date))
 
 # station_stage previously called marengo_stage
 # TODO update path
-station_stage <- data.table::fread("R/data_processing/marengo_stage.csv") %>%
+station_stage <- data.table::fread("inst/marengo_processed/marengo_stage.csv") %>%
   dplyr::mutate(Date = lubridate::ymd(Date))
 
 ### Powers ----
@@ -176,7 +169,7 @@ temp_params <- params %>%
   dplyr::mutate(
     Month = lubridate::month(Date, label = TRUE, abbr = TRUE),
     Year = lubridate::year(Date),
-    Year2 = as.factor(Year)
+    Year2 = factor(Year)
   ) %>%
   dplyr::arrange(Year, Month) %>%
   dplyr::filter(Result > 0) %>%
@@ -219,29 +212,9 @@ by_month <- temp_params %>%
                                                       onclick = JS("function() { this.exportChart(); }")
                                                     )))))
 
-# Temperature Panel
-# by_year > explore_powers.R > temp_params > params > R/data_processing/powers/EIMDiscreteResults_2024Apr23_8034.csv
-# params > R/data_processing/powers/EIMDiscreteResults_2024Apr23_8034.csv
 
-# DO, Phosphorus, TSS, Turbidity, Bacteria, Ammonia, Table
-# params (see above)
+private_ag_2019 <- 354543
+county <- 558037
 
-# Data Ranges Panel
-# param_ranges > params > R/data_processing/powers/EIMDiscreteResults_2024Apr23_8034.csv
-
-# Watershed Map 
-# huc12 > server > inst/huc_merge/HUC12_mod.shp
-
-# Landcover
-# ag_crit_aquifer > server > inst/huc_merge/ag_crit_aquifer.csv
-# private_ag_2019 # hardcoded in server
-# county # hardcoded in server
-# ag_wetlands > server > inst/huc_merge/ag_wetlands.csv
-# ag_geo_haz > server > inst/huc_merge/ag_geo_haz.csv
-# ag_conservation_areas > inst/huc_merge/ag_conservation_areas.csv
-
-# Guidance
-# huc_12_labels > R/data_processing/data_labels_HUC12.csv
-
-
+# TODO update this
 usethis::use_data(app_inputs, text_boxes, overwrite = TRUE, internal = TRUE)
