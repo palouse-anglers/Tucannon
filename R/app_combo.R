@@ -3,6 +3,7 @@ link_repo <- tags$a(
   href = app_inputs$repo,
   target = "_blank"
 )
+
 link_posit <- tags$a(
   shiny::icon("r-project"), "Posit",
   href = app_inputs$posit,
@@ -110,28 +111,28 @@ app_ui <- function(request) {
          bslib::nav_panel(title = "Phosphorus",
                           bslib::layout_column_wrap(
                             bslib::card(
-                              full_screen = TRUE
-                              # TODO Add content
+                              full_screen = TRUE,
+                              hc_ts_wBMPsUI("hc_ts_tphos")
                             ),
                             bslib::card(
-                              full_screen = TRUE
-                              # TODO Add content
+                              full_screen = TRUE,
+                              hc_ts_wBMPsUI("hc_ts_ophos")
                             ))),
          bslib::nav_panel(title = "TSS",
                           bslib::layout_column_wrap(
                             bslib::card(
                               full_screen = TRUE,
                               fill = TRUE,
-                              style = "resize:both;"
-                              # TODO Add content
+                              style = "resize:both;",
+                              hc_ts_wBMPsUI("hc_ts_tss")
                             ))),
          bslib::nav_panel(title = "Turbidity",
                           bslib::layout_column_wrap(
                             bslib::card(
                               full_screen = TRUE,
                               fill = TRUE,
-                              style = "resize:both;"
-                              # TODO Add content
+                              style = "resize:both;",
+                              hc_ts_wBMPsUI("hc_ts_turb")
                             ))),
          bslib::nav_panel(title = "Bacteria",
                           bslib::layout_column_wrap(
@@ -146,11 +147,11 @@ app_ui <- function(request) {
                             bslib::card(
                               full_screen = TRUE,
                               fill = TRUE,
-                              style = "resize:both;"
-                              # TODO Add content
+                              style = "resize:both;",
+                              hc_ts_wBMPsUI("hc_ts_amm")
                             ))),
          bslib::nav_panel(title = "Date Ranges",
-                          # TODO Add content
+                          DT::datatable(param_ranges)
                           ),
          bslib::nav_panel(title = "BMPs",
                           bslib::layout_column_wrap(
@@ -159,8 +160,9 @@ app_ui <- function(request) {
                                fill = TRUE,
                                style = "resize:both;",
                                bslib::card_header("BMPs Table"),
-                               # TODO Add content
-                            ),
+                               bslib::card_body(height = '65vh',
+                                         DT::dataTableOutput("bmps_full_table", width = "90%"))
+                               ),
                           bslib::card(
                                full_screen = TRUE,
                                fill = TRUE,
@@ -168,7 +170,8 @@ app_ui <- function(request) {
                                bslib::card_header("BMPs Plot"),
                                # TODO Add content
                             ))),
-         bslib::nav_panel(title = "Table"))
+         bslib::nav_panel(title = "Table",
+                          DT::dataTableOutput("params_table")))
          
                    ),
   # Watersheds ----
@@ -217,7 +220,7 @@ app_ui <- function(request) {
                                                              choices = c("Wetlands","Wildlife","Geologic Hazard","Aquifers"),
                                                              selected = "Wetlands"
                                    ),
-                                   checkboxInput("corrected_checkbox", "Adjusted Acreage")
+                                   shiny::checkboxInput("corrected_checkbox", "Adjusted Acreage")
                      ),
                      column(width = 4,
                             # TODO add content
@@ -236,7 +239,7 @@ app_ui <- function(request) {
   ),
   # Guidance ----
   bslib::nav_panel(title = "Guidance",
-                   
+                   DT::dataTableOutput("huclabels")
   ),
   # Nav additions ----
   bslib::nav_spacer(),
@@ -253,6 +256,56 @@ app_ui <- function(request) {
 
 
 app_server <- function(input, output, session) {
+  
+  # Filtered params ----
+  
+  rve_params <- reactive({
+    filter_data_bytime(params, 
+                       year_range = input$dateRange, 
+                       month_vals = input$monthRange) %>% 
+      dplyr::left_join(bmps_byyear, by = "Year")
+  })
+  
+  # Filtered BMPs ----
+  # TODO see if this should be corrected, it seem odd to use Date on the left and year on the right
+  rve_year_bmps <- reactive({
+    
+    bmps %>%
+      sf::st_drop_geometry() %>%
+      dplyr::mutate(Date=paste0(Year,"-05-04")
+      ) %>%
+      dplyr::filter(
+        lubridate::year(lubridate::date(Date)) >= input$dateRange[1] &  
+          lubridate::year(lubridate::date(Date)) <= input$dateRange[2]
+        ) 
+    
+  })  
+  
+  bmps_year <- reactive({
+    rve_params() %>%
+      dplyr::distinct(Year, No_BMPS) %>%
+      dplyr::mutate(No_BMPS = ifelse(is.na(No_BMPS), 0, No_BMPS),
+                    Year = as.double(Year))
+    
+  })
+  
+  # Stations ----
+  
+  rve_station_water <- reactive({
+    
+    filter_data_bytime(station_water, 
+                       year_range = input$dateRange, 
+                       month_vals = input$monthRange)
+    
+  })
+  
+  rve_station_stage <- reactive({
+    
+    filter_data_bytime(station_stage, 
+                       year_range = input$dateRange, 
+                       month_vals = input$monthRange)
+    
+  })
   
   # Water Quality ----
   # Make reactive to save time when loading. Only loads when tab is clicked
@@ -273,7 +326,52 @@ app_server <- function(input, output, session) {
                                      url = app_inputs$WQ$wa_eco_discharge_path,
                                      style = 'width:100vw;height:100vh;')
                         
+                      } else if(input$WQ_navset_tabs_id == "Phosphorus"){
+                        hc_ts_wBMPsServer("hc_ts_tphos",
+                                          data = rve_params, # only want to send the values, not the reactive version
+                                          param = "Total Phosphorus",
+                                          obs_name = "mg/L",
+                                          y_lbl = "Total Phos. mg/L",
+                                          bmp_lbl = "BMPs/Year",
+                                          title = "Total Phosphorus",
+                                          bmp_dat = bmps_year)
+                        hc_ts_wBMPsServer("hc_ts_ophos",
+                                          data = rve_params, # only want to send the values, not the reactive version
+                                          param = "Ortho-Phosphate",
+                                          obs_name = "mg/L",
+                                          y_lbl = "Orth-Phosphate mg/L",
+                                          bmp_lbl = "BMPs/Year",
+                                          title = "Ortho-Phosphate",
+                                          bmp_dat = bmps_year)
+                      } else if(input$WQ_navset_tabs_id == "TSS"){
+                        hc_ts_wBMPsServer("hc_ts_tss",
+                                          data = rve_params, # only want to send the values, not the reactive version
+                                          param = "Total Suspended Solids",
+                                          obs_name = "mg/L",
+                                          y_lbl = "TSS mg/L",
+                                          bmp_lbl = "BMPs/Year",
+                                          title = "Total Suspended Solids",
+                                          bmp_dat = bmps_year)
+                      } else if(input$WQ_navset_tabs_id == "Turbidity"){
+                        hc_ts_wBMPsServer("hc_ts_turb",
+                                          data = rve_params, # only want to send the values, not the reactive version
+                                          param = "Turbidity",
+                                          obs_name = "NTU",
+                                          y_lbl = "Turbidity NTU",
+                                          bmp_lbl = "BMPs/Year",
+                                          title = "Turbidity",
+                                          bmp_dat = bmps_year)
+                      } else if(input$WQ_navset_tabs_id == "Ammonia"){
+                        hc_ts_wBMPsServer("hc_ts_amm",
+                                          data = rve_params, # only want to send the values, not the reactive version
+                                          param = "Ammonia",
+                                          obs_name = "mg/L",
+                                          y_lbl = "NH3 mg/L",
+                                          bmp_lbl = "BMPs/Year",
+                                          title = "Ammonia",
+                                          bmp_dat = bmps_year)
                       }
+                        
                       
                       )
   
@@ -293,6 +391,59 @@ app_server <- function(input, output, session) {
                       }
   )
   
+  # Param Table --------------------------------------------------------------
+  
+  output$params_table <- DT::renderDT({
+    
+    req(nrow(rve_params())>=1)
+    
+    DT::datatable(
+      height = 900,
+      rownames = FALSE,
+      data = rve_params(),
+      extensions = 'Buttons',
+      filter = 'top',
+      options = list(
+        lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+        dom = 'lfrtipB',
+        buttons = c('copy', 'csv', 'excel')
+      )
+    ) 
+    
+    
+  })
+  
+  # bmps table ---------------------------------------------------------
+  
+  
+  output$bmps_full_table <- DT::renderDT({
+    
+    req(nrow(rve_year_bmps())>=1)
+    
+    DT::datatable(
+      height = 900,
+      rownames = FALSE,
+      data = rve_year_bmps() %>%
+        dplyr::select(Name, dplyr::matches("HUC\\d+"), everything(), -Date),
+      extensions = 'Buttons',
+      filter = 'top',
+      options = list(
+        lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+        dom = 'lfrtipB',
+        buttons = c('copy', 'csv', 'excel')
+      )
+    ) 
+    
+    
+  })
+  
+  # HUC Labels -----------------------------------------------------------
+  
+  output$huclabels <- DT::renderDT({
+    
+    DT::datatable(huc_labels)
+    
+  })
   
 }
 
