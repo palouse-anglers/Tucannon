@@ -75,17 +75,17 @@ ag_wetlands <- data.table::fread("inst/huc_merge/ag_wetlands.csv") %>%
     `Wetland Type` = WETLAND_TY
   )
 
-huc12 <- sf::st_read("inst/huc_merge/HUC12_mod.shp", quiet = TRUE) %>%
+huc <- sf::st_read("inst/huc_merge/HUC12_mod.shp", quiet = TRUE) %>%
   dplyr::select(HUC12) %>%
   dplyr::left_join(
     read.csv("inst/huc_merge/HUC12_reworked3.csv") %>%
-      mutate(HUC12 = as.character(HUC12)),
+      dplyr::mutate(HUC12 = as.character(HUC12)),
     by = "HUC12"
   )
 
-names_huc12 <- names(huc12)
+names_huc <- names(huc)
 
-huc_12_labels <- data.table::fread("inst/huc_merge/data_labels_HUC12.csv")
+huc_labels <- data.table::fread("inst/huc_merge/data_labels_HUC12.csv")
 
 stations <- sf::st_read("inst/huc_merge/stations.shp", quiet = TRUE)
 
@@ -129,9 +129,24 @@ bmps <- bmp_points %>%
     Type = type,
     ID = Cntr_ID
   ) %>%
-  dplyr::left_join(huc12 %>%
+  dplyr::left_join(huc %>%
             select(HUC12, Name) %>%
             sf::st_drop_geometry(), by="HUC12")
+
+
+bmps_byyear <- bmps %>%
+  sf::st_drop_geometry() %>%
+  dplyr::group_by(Year) %>%
+  dplyr::summarise(No_BMPS = n()) %>% 
+  dplyr::ungroup()%>%
+  tidyr::complete(Year = seq(min(.data$Year, na.rm = TRUE),
+                             max(.data$Year, na.rm = TRUE), 
+                             by = 1), 
+                  fill = list("No_BMPS" = 0)) %>% 
+  dplyr::arrange(Year) %>%
+  dplyr::mutate(Cume_BMPs=cumsum(No_BMPS))
+
+
 
 ## Stations data ----
 ### Marengo ----
@@ -152,7 +167,7 @@ params <-  data.table::fread("inst/powers_raw/EIMDiscreteResults_2024Apr23_8034.
     Date = lubridate::mdy(Field_Collection_Start_Date),
     Year = lubridate::year(Date),
     Units = Result_Value_Units,
-    Month = as.character(lubridate::month(Date, label = TRUE, abbr = TRUE)),
+    Month = lubridate::month(Date, label = TRUE, abbr = TRUE),
     Result = as.numeric(Result_Value)
   ) 
 
@@ -217,4 +232,9 @@ private_ag_2019 <- 354543
 county <- 558037
 
 # TODO update this
-usethis::use_data(app_inputs, text_boxes, overwrite = TRUE, internal = TRUE)
+usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_crit_aquifer, ag_frqflood, 
+                  ag_wetlands, huc, huc_labels, stations, 
+                  wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
+                  station_water, station_stage, params, param_ranges, 
+                  by_year, by_month, private_ag_2019, county,
+                  overwrite = TRUE, internal = TRUE)
