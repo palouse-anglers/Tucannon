@@ -8,15 +8,23 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_ts <- highcharter::renderHighchart({
       
+      # Set NULL to fix check
+      Date <- NULL
+      Result <- NULL
+      .fitted <- NULL
+      Year <- NULL
+      No_BMPS <- NULL
+      
+      
       df <- filter_params(data = data(), 
                           param_vals = param, 
                           group_vars = c("Date", "Units"), 
                           round_dig = 2, 
                           arr_vars = "Date")
       
-      req(nrow(df)>1)
+      shiny::req(nrow(df)>1)
       
-      mod <- broom::augment(lm(Result ~ Date, data = df))
+      mod <- broom::augment(stats::lm(Result ~ Date, data = df))
       
       df %>%
         highcharter::hchart(
@@ -74,12 +82,17 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
         # turn off regression tooltip
         highcharter::hc_tooltip(formatter = highcharter::JS(glue::glue("function(){{
   
-  if (this.series.name !== 'Regression') {{
+  if (this.series.name == 'BMPs') {{
+                            return (
+                            ' <br>Year: ' + Highcharts.dateFormat('%Y', this.x) +
+                            ' <br>Count: ' + this.y +' BMPs'
+                            );
+  }} else if (this.series.name !== 'Regression') {{
                             return (
                             ' <br>Date: ' + this.point.Date +
                             ' <br>Result: ' + this.point.Result +' {obs_name}'
                             );
-  }} else {{
+  }} else  {{
                         return false;
                       }}
                             }}")))%>%
@@ -93,7 +106,7 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
               menuItems = list(
                 list(
                   textKey = "downloadPNG",
-                  onclick = JS("function() { this.exportChart(); }")
+                  onclick = highcharter::JS("function() { this.exportChart(); }")
                 )
               )
             )
