@@ -30,8 +30,8 @@ filter_data_bytime <- function(data, year_col = "Year", month_col = "Month", yea
                           msg = "Selected months are not in data.")
   
   output <- data %>%
-    dplyr::filter(!!sym(year_col) >= year_range[1] & !!sym(year_col) <= year_range[2]) %>% 
-    dplyr::filter(!!sym(month_col) %in% month_vals)
+    dplyr::filter(!!rlang::sym(year_col) >= year_range[1] & !!rlang::sym(year_col) <= year_range[2]) %>% 
+    dplyr::filter(!!rlang::sym(month_col) %in% month_vals)
   
   return(output)
   
@@ -47,6 +47,10 @@ filter_params <- function(data, param_vals, group_vars = c("Param", "Date", "Yea
   options(dplyr.summarise.inform = FALSE)            # set new value
   on.exit(options(dplyr.summarise.inform = old_inform), add = TRUE)  # restore on exit
   
+  # Set NULL to fix check
+  Param <- NULL
+  Result <- NULL
+  . <- NULL
   
   assertthat::assert_that(is.data.frame(data),
                           msg = "data must be a data.frame.")
@@ -86,7 +90,7 @@ filter_params <- function(data, param_vals, group_vars = c("Param", "Date", "Yea
     dplyr::summarise(Result = mean(Result, na.rm = TRUE)) %>% 
     dplyr::ungroup() %>% 
     {if(!is.null(round_dig)) dplyr::mutate(., Result = round(Result, round_dig)) else .} %>% 
-    dplyr::arrange(!!!syms(arr_vars)) %>% 
+    dplyr::arrange(!!!rlang::syms(arr_vars)) %>% 
     {if(res_gt0) dplyr::filter(., Result > 0) else .}
   
 }
@@ -120,13 +124,13 @@ filter_params <- function(data, param_vals, group_vars = c("Param", "Date", "Yea
 #   select(Date, Result, Month, Year) # rearrange and drop param
 # identical(x,y)
 
-x <- filter_data_bytime(params, 
-                   year_range = c(2011, 2024), 
-                   month_vals = month.abb[c(1:12)]) %>% 
-  dplyr::left_join(bmps_byyear, by = "Year")
-
-df <- filter_params(data = x, 
-                    param_vals = "Total Suspended Solids", 
-                    group_vars = c("Date", "Units"), 
-                    round_dig = 2, 
-                    arr_vars = "Date")
+# x <- filter_data_bytime(params, 
+#                    year_range = c(2011, 2024), 
+#                    month_vals = month.abb[c(1:12)]) %>% 
+#   dplyr::left_join(bmps_byyear, by = "Year")
+# 
+# df <- filter_params(data = x, 
+#                     param_vals = "Total Suspended Solids", 
+#                     group_vars = c("Date", "Units"), 
+#                     round_dig = 2, 
+#                     arr_vars = "Date")
