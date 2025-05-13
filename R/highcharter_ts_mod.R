@@ -4,7 +4,7 @@ hc_ts_wBMPsUI <- function(id) {
 }
 
 
-hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, bmp_dat) {
+hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, bmp_dat, href = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_ts <- highcharter::renderHighchart({
       
@@ -15,28 +15,59 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
       Year <- NULL
       No_BMPS <- NULL
       
+      if(length(param)>1){
+        grp_var <- c("Param", "Date", "Units")
+        arr_var <- c("Param", "Date")
+      } else {
+        grp_var <- c("Date", "Units")
+        arr_var <- c("Date")
+      }
       
       df <- filter_params(data = data(), 
                           param_vals = param, 
-                          group_vars = c("Date", "Units"), 
+                          group_vars = grp_var, 
                           round_dig = 2, 
-                          arr_vars = "Date")
+                          arr_vars = arr_var)
       
       shiny::req(nrow(df)>1)
       
       mod <- broom::augment(stats::lm(Result ~ Date, data = df))
       
+      href_name <- if (!is.null(href)) names(href) else ""
+      
       df %>%
-        highcharter::hchart(
-          type = "scatter",
-          highcharter::hcaes(x = Date, y = Result),
-          name = obs_name,
-          showInLegend = TRUE,
-          tooltip = list(
-            headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
-            pointFormat = glue::glue("<b>{{point.y}} {obs_name} </b>")
-          ),
-        ) %>%
+        {if(length(param) > 1){
+          highcharter::hchart(.,
+            type = "scatter",
+            mapping = highcharter::hcaes(x = Date, y = Result, group = Param, name = Param),
+            showInLegend = TRUE,
+            tooltip = list(
+              headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+              pointFormat = glue::glue("<b>{{point.y}} {obs_name} </b>")
+            )
+          )} else { 
+            highcharter::hchart(.,
+            type = "scatter",
+            mapping = highcharter::hcaes(x = Date, y = Result),
+            name = obs_name,
+            showInLegend = TRUE,
+            tooltip = list(
+              headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+              pointFormat = glue::glue("<b>{{point.y}} {obs_name} </b>")
+            )
+          )}} %>% 
+        {if(!is.null(href)){
+          highcharter::hc_add_series(., tooltip = list(enabled = FALSE),
+                        data = df %>%
+                          dplyr::select(-Result),
+                        highcharter::hcaes(x = Date, y = href),
+                        type = "line",
+                        showInLegend = TRUE,
+                        dashStyle = "Dash",
+                        name = names(href),
+                        color = "red")
+
+        } else .} %>%
         highcharter::hc_yAxis_multiples(
           list(title = list(text = y_lbl), opposite = FALSE),
           list(showLastLabel = TRUE, 
@@ -87,14 +118,14 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
                             ' <br>Year: ' + Highcharts.dateFormat('%Y', this.x) +
                             ' <br>Count: ' + this.y +' BMPs'
                             );
-  }} else if (this.series.name !== 'Regression') {{
+  }} else if (this.series.name === 'Regression' || this.series.name === '{href_name}') {{
+        return false;
+      }} else  {{
                             return (
                             ' <br>Date: ' + this.point.Date +
                             ' <br>Result: ' + this.point.Result +' {obs_name}'
                             );
-  }} else  {{
-                        return false;
-                      }}
+  }}
                             }}")))%>%
         highcharter::hc_title(
           text = title
@@ -138,3 +169,90 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
 # }
 # 
 # shiny::shinyApp(ui, server)
+
+
+hc_lineUI <- function(id) {
+  ns <- shiny::NS(id)
+  highcharter::highchartOutput(ns("hc_line"))
+}
+
+
+hc_lineServer <- function(id, data, obs_name, y_lbl, title) {
+  shiny::moduleServer(id, function(input, output, session) {
+    output$hc_line <- highcharter::renderHighchart({
+      
+      # Set NULL to fix check
+      Date <- NULL
+      Result <- NULL
+      .fitted <- NULL
+      
+      df <- data()
+      
+      shiny::req(nrow(df)>1)
+      
+      mod <- broom::augment(stats::lm(Result ~ Date, data = df))
+      
+      df %>%
+        highcharter::hchart(
+          type = "line",
+          mapping = highcharter::hcaes(x = Date, y = Result),
+          tooltip = list(
+            headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>"#,
+            # pointFormat = glue::glue("<b>{{point.y}} {obs_name} </b>")
+          )
+        ) %>%
+        highcharter::hc_add_series(
+          data = mod,
+          highcharter::hcaes(x = Date, y = .fitted),
+          name = "Regression",
+          type = "line",
+          color = "black",
+          tooltip = list(enabled = FALSE),
+          dashStyle = "Dash",
+          showInLegend = TRUE
+        ) %>%
+        highcharter::hc_plotOptions(
+          line = list(
+            marker = list(
+              enabled = FALSE
+            )
+          )
+        ) %>%
+        # turn off regression tooltip
+        highcharter::hc_tooltip(formatter = highcharter::JS(glue::glue("function(){{
+  
+  if (this.series.name === 'Regression') {{
+        return false;
+      }} else  {{
+                            return (
+                            ' <br>Date: ' + this.point.Date +
+                            ' <br>Result: ' + this.point.Result +' {obs_name}'
+                            );
+  }}
+                            }}")))%>%
+        highcharter::hc_title(
+          text = title
+        ) %>%
+        highcharter::hc_yAxis(title = list(text = y_lbl)) %>%
+        highcharter::hc_exporting(
+          enabled = TRUE, 
+          buttons = list(
+            contextButton = list(
+              menuItems = list(
+                list(
+                  textKey = "downloadPNG",
+                  onclick = highcharter::JS("function() { this.exportChart(); }")
+                )
+              )
+            )
+          )
+        ) %>%
+        highcharter::hc_chart(
+          backgroundColor = "#FFFFFF"
+        ) #%>%
+      # highcharter::hc_xAxis(
+      #   type = "datetime"
+      # )
+    })
+  })
+}

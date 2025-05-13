@@ -69,14 +69,14 @@ run_app <- function(){
                                                                              bslib::card(
                                                                                full_screen = TRUE,
                                                                                style = "resize:both;",
-                                                                               bslib::card_header("Temperature")
-                                                                               # TODO Add content
+                                                                               bslib::card_header("Temperature"),
+                                                                               hc_lineUI("hc_line_temp")
                                                                              ),
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
                                                                                style = "resize:both;",
-                                                                               bslib::card_header("Stage Height")
-                                                                               # TODO Add content
+                                                                               bslib::card_header("Stage Height"),
+                                                                               hc_lineUI("hc_line_stage")
                                                                              )
                                                                            )
                                                           ),
@@ -113,8 +113,8 @@ run_app <- function(){
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
                                                                                style = "resize:both;",
-                                                                               bslib::card_header("Dissolved Oxygen")
-                                                                               # TODO Add content
+                                                                               bslib::card_header("Dissolved Oxygen"),
+                                                                               hc_ts_wBMPsUI("hc_ts_do")
                                                                              ))),
                                                           bslib::nav_panel(title = "Phosphorus",
                                                                            bslib::layout_column_wrap(
@@ -147,8 +147,8 @@ run_app <- function(){
                                                                              bslib::card(
                                                                                full_screen = TRUE,
                                                                                fill = TRUE,
-                                                                               style = "resize:both;"
-                                                                               # TODO Add content
+                                                                               style = "resize:both;",
+                                                                               hc_ts_wBMPsUI("hc_ts_bact")
                                                                              ))),
                                                           bslib::nav_panel(title = "Ammonia",
                                                                            bslib::layout_column_wrap(
@@ -334,6 +334,30 @@ run_app <- function(){
                                        url = app_inputs$WQ$wa_eco_discharge_path,
                                        style = 'width:100vw;height:100vh;')
                           
+                        } else if(input$WQ_navset_tabs_id == "Marengo DOE Gauge"){
+                          
+                          hc_lineServer("hc_line_temp",
+                                            data = rve_station_water, # only want to send the values, not the reactive version
+                                            obs_name = "deg C",
+                                            y_lbl = "Temperature deg C",
+                                            title = "35B150-Marengo Temperature")
+                          
+                          hc_lineServer("hc_line_stage",
+                                        data = rve_station_stage, # only want to send the values, not the reactive version
+                                        obs_name = "(ft)",
+                                        y_lbl = "Stage Ht. (ft)",
+                                        title = "35B150-Marengo Stage Ht. (ft)")
+                          
+                        } else if(input$WQ_navset_tabs_id == "Dissolved Oxygen"){
+                          hc_ts_wBMPsServer("hc_ts_do",
+                                            data = rve_params, # only want to send the values, not the reactive version
+                                            param = "Dissolved Oxygen",
+                                            obs_name = "Dissolved Oxygen mg/L",
+                                            y_lbl = "Dissolved Oxygen mg/L",
+                                            bmp_lbl = "BMPs/Year",
+                                            title = "Powers Road",
+                                            bmp_dat = bmps_year,
+                                            href = c("TMDL" = 8))
                         } else if(input$WQ_navset_tabs_id == "Phosphorus"){
                           hc_ts_wBMPsServer("hc_ts_tphos",
                                             data = rve_params, # only want to send the values, not the reactive version
@@ -368,6 +392,15 @@ run_app <- function(){
                                             y_lbl = "Turbidity NTU",
                                             bmp_lbl = "BMPs/Year",
                                             title = "Turbidity",
+                                            bmp_dat = bmps_year)
+                        } else if(input$WQ_navset_tabs_id == "Bacteria"){
+                          hc_ts_wBMPsServer("hc_ts_bact",
+                                            data = rve_params, # only want to send the values, not the reactive version
+                                            param = c("E. coli","Fecal Coliform"),
+                                            obs_name = "CFU/100mL",
+                                            y_lbl = "CFU/100mL",
+                                            bmp_lbl = "BMPs/Year",
+                                            title = "Bacteria",
                                             bmp_dat = bmps_year)
                         } else if(input$WQ_navset_tabs_id == "Ammonia"){
                           hc_ts_wBMPsServer("hc_ts_amm",
