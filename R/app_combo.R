@@ -176,7 +176,7 @@ run_app <- function(){
                                                                                fill = TRUE,
                                                                                style = "resize:both;",
                                                                                bslib::card_header("BMPs Plot"),
-                                                                               # TODO Add content
+                                                                               hc_bar_stackUI("hc_bar_bmps")
                                                                              ))),
                                                           bslib::nav_panel(title = "Table",
                                                                            DT::dataTableOutput("params_table")))
@@ -411,6 +411,15 @@ run_app <- function(){
                                             bmp_lbl = "BMPs/Year",
                                             title = "Ammonia",
                                             bmp_dat = bmps_year)
+                        } else if(input$WQ_navset_tabs_id == "BMPs"){
+                          hc_bar_stackServer("hc_bar_bmps",
+                                            data = rve_year_bmps, # only want to send the values, not the reactive version
+                                            x_var = "Year",
+                                            y_var = "n",
+                                            group_var = "Project",
+                                            x_lbl = "Year",
+                                            y_lbl = "Count",
+                                            use_n = TRUE)
                         }
                         
                         
