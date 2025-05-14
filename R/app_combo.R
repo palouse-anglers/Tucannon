@@ -85,7 +85,7 @@ run_app <- function(){
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
                                                                                # bslib::card_header("")
-                                                                               # TODO Add content
+                                                                               hc_lineUI("hc_line_temp_an")
                                                                              ),
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
@@ -100,7 +100,7 @@ run_app <- function(){
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
                                                                                # bslib::card_header("")
-                                                                               # TODO Add content
+                                                                               hc_ts_wBMPsUI("hc_ts_temp")
                                                                              ),
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
@@ -348,6 +348,44 @@ run_app <- function(){
                                         y_lbl = "Stage Ht. (ft)",
                                         title = "35B150-Marengo Stage Ht. (ft)")
                           
+                        } else if(input$WQ_navset_tabs_id == "Temperature"){
+                          
+                          temp_by_year <- shiny::reactive({
+
+                            filter_params(data = rve_params(),
+                                            param_vals = "Temperature, water",
+                                            group_vars = c("Param", "Date", "Year", "Month", "Units"),
+                                            arr_vars = c("Year", "Month"),
+                                            res_gt0 = TRUE) %>%
+                              dplyr::select(-Date) %>% 
+                              dplyr::mutate(Date = lubridate::ymd(as.character(Year), truncated = 4))
+
+                          })
+                          
+                          temp_av_year <- shiny::reactive({
+                            filter_params(data = temp_by_year(),
+                                          param_vals = "Temperature, water",
+                                          group_vars = c("Date"),
+                                          arr_vars = c("Year"),
+                                          round_dig = 2)
+                          })
+                          
+                          hc_lineServer("hc_line_temp_an",
+                                        data = temp_av_year, # only want to send the values, not the reactive version
+                                        obs_name = "deg C",
+                                        y_lbl = "Temperature deg C",
+                                        x_lbl = "Year",
+                                        title = "Annual Average")
+
+                          hc_ts_wBMPsServer("hc_ts_temp",
+                                            data = temp_by_year, # only want to send the values, not the reactive version
+                                            param = "Temperature, water",
+                                            obs_name = "deg C",
+                                            y_lbl = "Temperature deg C",
+                                            x_lbl = "Year",
+                                            bmp_lbl = "BMPs/Year",
+                                            title = "Annual Average (Scatter)",
+                                            bmp_dat = bmps_year)
                         } else if(input$WQ_navset_tabs_id == "Dissolved Oxygen"){
                           hc_ts_wBMPsServer("hc_ts_do",
                                             data = rve_params, # only want to send the values, not the reactive version

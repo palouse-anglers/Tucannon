@@ -4,7 +4,7 @@ hc_ts_wBMPsUI <- function(id) {
 }
 
 
-hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, bmp_dat, href = NULL) {
+hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, x_lbl = "Date", bmp_lbl, title, bmp_dat, href = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_ts <- highcharter::renderHighchart({
       
@@ -21,6 +21,12 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
       } else {
         grp_var <- c("Date", "Units")
         arr_var <- c("Date")
+      }
+      
+      if(x_lbl == "Year"){
+        obs_tool_tip <- "' <br>Year: ' + Highcharts.dateFormat('%Y', this.x) +"
+      } else {
+        obs_tool_tip <- "' <br>Date: ' + this.point.Date +"
       }
       
       df <- filter_params(data = data(), 
@@ -86,8 +92,8 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
         ) %>%
         highcharter::hc_add_series(
           name = "BMPs",
-          data = bmp_dat() %>%
-            dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)),
+          data = bmp_dat() %>% 
+            dplyr::mutate(Year = lubridate::ymd(Year, truncated = 4)), # lubridate::ymd( , truncated = 4) 
           highcharter::hcaes(x = Year, y = No_BMPS),
           type = "areaspline",
           fillOpacity = 0.3,
@@ -122,7 +128,7 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
         return false;
       }} else  {{
                             return (
-                            ' <br>Date: ' + this.point.Date +
+                            {obs_tool_tip}
                             ' <br>Result: ' + this.point.Result +' {obs_name}'
                             );
   }}
@@ -130,6 +136,7 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, bmp_lbl, title, 
         highcharter::hc_title(
           text = title
         ) %>%
+        highcharter::hc_xAxis(title = list(text = x_lbl)) %>%
         highcharter::hc_exporting(
           enabled = TRUE, 
           buttons = list(
@@ -177,7 +184,7 @@ hc_lineUI <- function(id) {
 }
 
 
-hc_lineServer <- function(id, data, obs_name, y_lbl, title) {
+hc_lineServer <- function(id, data, obs_name, y_lbl, x_lbl = "Date", title) {
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_line <- highcharter::renderHighchart({
       
@@ -191,6 +198,12 @@ hc_lineServer <- function(id, data, obs_name, y_lbl, title) {
       shiny::req(nrow(df)>1)
       
       mod <- broom::augment(stats::lm(Result ~ Date, data = df))
+      
+      if(x_lbl == "Year"){
+        obs_tool_tip <- "' <br>Year: ' + Highcharts.dateFormat('%Y', this.x) +"
+      } else {
+        obs_tool_tip <- "' <br>Date: ' + this.point.Date +"
+      }
       
       df %>%
         highcharter::hchart(
@@ -225,7 +238,7 @@ hc_lineServer <- function(id, data, obs_name, y_lbl, title) {
         return false;
       }} else  {{
                             return (
-                            ' <br>Date: ' + this.point.Date +
+                            {obs_tool_tip}
                             ' <br>Result: ' + this.point.Result +' {obs_name}'
                             );
   }}
@@ -233,6 +246,7 @@ hc_lineServer <- function(id, data, obs_name, y_lbl, title) {
         highcharter::hc_title(
           text = title
         ) %>%
+        highcharter::hc_xAxis(title = list(text = x_lbl)) %>%
         highcharter::hc_yAxis(title = list(text = y_lbl)) %>%
         highcharter::hc_exporting(
           enabled = TRUE, 
