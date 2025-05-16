@@ -51,6 +51,13 @@ run_app <- function(){
                                         ),
                                         bslib::navset_tab(id = "WQ_navset_tabs_id",
                                                           bslib::nav_panel(title = "Realtime Flows",
+                                                                           
+                                                                             shiny::tags$div(
+                                                                               class = "text-danger",
+                                                                                   style = "margin-top: 1em; margin-bottom: 1em; display: flex; align-items: center;",
+                                                                                   shiny::icon("info-circle", class = "me-2"),
+                                                                                   shiny::tags$span(" The following content is independent of the data filters above.")
+                                                                             ),
                                                                            bslib::card(
                                                                              full_screen = TRUE,
                                                                              title = app_inputs$WQ$usgs_flow_ttl,
@@ -81,33 +88,33 @@ run_app <- function(){
                                                                            )
                                                           ),
                                                           bslib::nav_panel(title = "Temperature",
-                                                                           bslib::layout_column_wrap(
-                                                                             bslib::card( 
-                                                                               full_screen = TRUE,
-                                                                               # bslib::card_header("")
-                                                                               hc_lineUI("hc_line_temp_an")
+                                                                             # First row: 3 cards
+                                                                             bslib::layout_column_wrap(
+                                                                               width = 1/3,
+                                                                               bslib::card(full_screen = TRUE, 
+                                                                                           hc_lineUI("hc_line_temp_an")),
+                                                                               bslib::card(full_screen = TRUE, 
+                                                                                           hc_boxUI("hc_box_temp")),
+                                                                               bslib::card(full_screen = TRUE, 
+                                                                                           hc_ts_wBMPsUI("hc_ts_temp"))
                                                                              ),
-                                                                             bslib::card( 
-                                                                               full_screen = TRUE,
-                                                                               # bslib::card_header("")
-                                                                               # TODO Add content
+                                                                             # Info icon + soft red text
+                                                                             tags$hr(style = "margin-bottom: 0.25em;"),
+                                                                             tags$div(
+                                                                               # class = "text-danger",
+                                                                               class = "d-flex justify-content-center align-items-center text-danger",
+                                                                               style = "margin-top: 0; margin-bottom: 0.5em;",
+                                                                               # style = "margin-top: 0.5em; margin-bottom: 1em; display: flex; align-items: center;",
+                                                                               shiny::icon("info-circle", class = "me-2"),
+                                                                               tags$span("The following content is independent of the data filters above.")
                                                                              ),
-                                                                             bslib::card( 
-                                                                               full_screen = TRUE,
-                                                                               # bslib::card_header("")
-                                                                               # TODO Add content
-                                                                             ),
-                                                                             bslib::card( 
-                                                                               full_screen = TRUE,
-                                                                               # bslib::card_header("")
-                                                                               hc_ts_wBMPsUI("hc_ts_temp")
-                                                                             ),
-                                                                             bslib::card( 
-                                                                               full_screen = TRUE,
-                                                                               # bslib::card_header("")
-                                                                               # TODO Add content
+                                                                             # Second row: 2 cards
+                                                                             bslib::layout_column_wrap(
+                                                                               width = 1/2,
+                                                                               bslib::card(full_screen = TRUE),  # TODO Add content
+                                                                               bslib::card(full_screen = TRUE)   # TODO Add content
                                                                              )
-                                                                           )),
+                                                                           ),
                                                           bslib::nav_panel(title = "Dissolved Oxygen",
                                                                            bslib::layout_column_wrap(
                                                                              bslib::card( 
@@ -351,7 +358,6 @@ run_app <- function(){
                         } else if(input$WQ_navset_tabs_id == "Temperature"){
                           
                           temp_by_year <- shiny::reactive({
-
                             filter_params(data = rve_params(),
                                             param_vals = "Temperature, water",
                                             group_vars = c("Param", "Date", "Year", "Month", "Units"),
@@ -359,7 +365,16 @@ run_app <- function(){
                                             res_gt0 = TRUE) %>%
                               dplyr::select(-Date) %>% 
                               dplyr::mutate(Date = lubridate::ymd(as.character(Year), truncated = 4))
-
+                          })
+                          
+                          temp_by_year2 <- shiny::reactive({
+                            filter_params(data = rve_params(),
+                                          param_vals = "Temperature, water",
+                                          group_vars = c("Param", "Date", "Year", "Month", "Units"),
+                                          arr_vars = c("Year", "Month"),
+                                          res_gt0 = TRUE) %>%
+                              dplyr::select(-Date) %>% 
+                              dplyr::mutate(Date = Year)
                           })
                           
                           temp_av_year <- shiny::reactive({
@@ -376,6 +391,17 @@ run_app <- function(){
                                         y_lbl = "Temperature deg C",
                                         x_lbl = "Year",
                                         title = "Annual Average")
+                          
+                          hc_boxServer("hc_box_temp",
+                                       data = temp_by_year2, # only want to send the values, not the reactive version
+                                       x_var = "Date",
+                                       y_var = "Result",
+                                       x_lbl = "Year",
+                                       y_lbl = "Temperature deg C",
+                                       obs_name = "deg C",
+                                       bmp_lbl = "BMPs/Year",
+                                       title = "Quartiles",
+                                       bmp_dat = bmps_year)
 
                           hc_ts_wBMPsServer("hc_ts_temp",
                                             data = temp_by_year, # only want to send the values, not the reactive version
