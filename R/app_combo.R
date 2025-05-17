@@ -52,12 +52,12 @@ run_app <- function(){
                                         bslib::navset_tab(id = "WQ_navset_tabs_id",
                                                           bslib::nav_panel(title = "Realtime Flows",
                                                                            
-                                                                             shiny::tags$div(
-                                                                               class = "text-danger",
-                                                                                   style = "margin-top: 1em; margin-bottom: 1em; display: flex; align-items: center;",
-                                                                                   shiny::icon("info-circle", class = "me-2"),
-                                                                                   shiny::tags$span(" The following content is independent of the data filters above.")
-                                                                             ),
+                                                                           shiny::tags$div(
+                                                                             class = "text-danger",
+                                                                                 style = "margin-top: 1em; margin-bottom: 1em; display: flex; align-items: center;",
+                                                                                 shiny::icon("info-circle", class = "me-2"),
+                                                                                 shiny::tags$span(" The following content is independent of the data filters above.")
+                                                                           ),
                                                                            bslib::card(
                                                                              full_screen = TRUE,
                                                                              title = app_inputs$WQ$usgs_flow_ttl,
@@ -77,13 +77,17 @@ run_app <- function(){
                                                                                full_screen = TRUE,
                                                                                style = "resize:both;",
                                                                                bslib::card_header("Temperature"),
-                                                                               hc_lineUI("hc_line_temp")
+                                                                               hc_lineUI("hc_line_temp") %>%
+                                                                                 shinycssloaders::withSpinner(
+                                                                                   image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif")
                                                                              ),
                                                                              bslib::card( 
                                                                                full_screen = TRUE,
                                                                                style = "resize:both;",
                                                                                bslib::card_header("Stage Height"),
-                                                                               hc_lineUI("hc_line_stage")
+                                                                               hc_lineUI("hc_line_stage") %>%
+                                                                                 shinycssloaders::withSpinner(
+                                                                                   image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif")
                                                                              )
                                                                            )
                                                           ),
@@ -111,8 +115,10 @@ run_app <- function(){
                                                                              # Second row: 2 cards
                                                                              bslib::layout_column_wrap(
                                                                                width = 1/2,
-                                                                               bslib::card(full_screen = TRUE),  # TODO Add content
-                                                                               bslib::card(full_screen = TRUE)   # TODO Add content
+                                                                               bslib::card(full_screen = TRUE,
+                                                                                           by_summer),  # TODO Add content
+                                                                               bslib::card(full_screen = TRUE,
+                                                                                           by_month)   # TODO Add content
                                                                              )
                                                                            ),
                                                           bslib::nav_panel(title = "Dissolved Oxygen",

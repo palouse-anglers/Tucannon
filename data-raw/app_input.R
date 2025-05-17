@@ -215,9 +215,13 @@ by_month <- temp_params %>%
   dplyr::ungroup() %>%
   highcharter::hchart("areaspline", 
                       highcharter::hcaes(x = Month, y = Result), 
-                      name = "Degrees C") %>%
+                      name = "deg C",
+                      tooltip = list(
+                        headerFormat = "Month: {point.key}<br/>",
+                        pointFormat = "Result: {point.y} deg C"
+                      )) %>%
   #hc_rangeSelector(enabled = TRUE) %>%
-  highcharter::hc_yAxis(title = list(text = "Degrees C")) %>%
+  highcharter::hc_yAxis(title = list(text = "Temperature deg C")) %>%
   highcharter::hc_title(text = "Monthly Average") %>%
   highcharter::hc_exporting(enabled = TRUE, 
                             buttons = list(contextButton = 
@@ -228,6 +232,30 @@ by_month <- temp_params %>%
                                                     )))))
 
 
+by_summer <- temp_params %>%
+  dplyr::filter(Year %in% c(2000, 2005, 2011, 2017, 2022, 2023),
+                Month %in% c("May", "Jun", "Jul", "Aug")) %>%
+  dplyr::group_by(Year, Month) %>%
+  dplyr::summarise(Result = round(mean(Result, na.rm = TRUE), 2)) %>%
+  dplyr::ungroup() %>%
+  highcharter::hchart("bubble", 
+                      highcharter::hcaes(x = Month, 
+                                         y = Result, 
+                                         group = Year),
+                      tooltip = list(
+                        headerFormat = "Year: {series.name}<br/>Month: {point.key}<br/>",
+                        pointFormat = "Result: {point.y} deg C"
+                      )) %>%
+  highcharter::hc_yAxis(title = list(text = "Temperature deg C")) %>%
+  highcharter::hc_title(text = "Summer Months") %>%
+  highcharter::hc_exporting(enabled = TRUE, buttons = list(contextButton = list(menuItems = list(
+    list(
+      textKey = "downloadPNG",
+      onclick = JS("function() { this.exportChart(); }")
+    )
+  ))))
+
+
 private_ag_2019 <- 354543
 county <- 558037
 
@@ -236,5 +264,5 @@ usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_
                   ag_wetlands, huc, huc_labels, stations, 
                   wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
                   station_water, station_stage, params, param_ranges, 
-                  by_year, by_month, private_ag_2019, county,
+                  by_year, by_month, by_summer, private_ag_2019, county,
                   overwrite = TRUE, internal = TRUE)
