@@ -8,6 +8,10 @@ hc_boxServer <- function(id, data, x_var, y_var, round_dig = 2, x_lbl, y_lbl, ob
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_box <- highcharter::renderHighchart({
       
+      # To fix check
+      Year <- NULL
+      No_BMPS <- NULL
+      
       df <- data()
       
       shiny::req(nrow(df)>1)
@@ -17,9 +21,9 @@ hc_boxServer <- function(id, data, x_var, y_var, round_dig = 2, x_lbl, y_lbl, ob
         dplyr::group_by(dplyr::across(dplyr::all_of(x_var))) %>%
         dplyr::summarise(
           low = round(min(!!rlang::sym(y_var), na.rm = TRUE), digits = round_dig),
-          q1 = round(quantile(!!rlang::sym(y_var), 0.25, na.rm = TRUE), digits = round_dig),
-          median = round(median(!!rlang::sym(y_var), na.rm = TRUE), digits = round_dig),
-          q3 = round(quantile(!!rlang::sym(y_var), 0.75, na.rm = TRUE), digits = round_dig),
+          q1 = round(stats::quantile(!!rlang::sym(y_var), 0.25, na.rm = TRUE), digits = round_dig),
+          median = round(stats::median(!!rlang::sym(y_var), na.rm = TRUE), digits = round_dig),
+          q3 = round(stats::quantile(!!rlang::sym(y_var), 0.75, na.rm = TRUE), digits = round_dig),
           high = round(max(!!rlang::sym(y_var), na.rm = TRUE), digits = round_dig)
         ) %>% 
         dplyr::ungroup()

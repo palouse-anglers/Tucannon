@@ -8,13 +8,16 @@ hc_bar_stackServer <- function(id, data, x_var, y_var, group_var, x_lbl, y_lbl, 
   shiny::moduleServer(id, function(input, output, session) {
     output$hc_bar_stack <- highcharter::renderHighchart({
       
+      # To fix check
+      . <- NULL
+      
       df <- data()
       
       shiny::req(nrow(df)>1)
       
       if(use_n){
         df <- df %>% 
-          dplyr::group_by(across(all_of(c(x_var, group_var)))) %>% 
+          dplyr::group_by(dplyr::across(dplyr::all_of(c(x_var, group_var)))) %>% 
           dplyr::tally()
         y_var <- "n"
       }

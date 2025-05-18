@@ -14,6 +14,8 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, x_lbl = "Date", 
       .fitted <- NULL
       Year <- NULL
       No_BMPS <- NULL
+      . <- NULL
+      Param <- NULL
       
       if(length(param)>1){
         grp_var <- c("Param", "Date", "Units")
@@ -65,7 +67,8 @@ hc_ts_wBMPsServer <- function(id, data, param, obs_name, y_lbl, x_lbl = "Date", 
         {if(!is.null(href)){
           highcharter::hc_add_series(., tooltip = list(enabled = FALSE),
                         data = df %>%
-                          dplyr::select(-Result),
+                          dplyr::select(-Result) %>% 
+                          dplyr::mutate(href = href),
                         highcharter::hcaes(x = Date, y = href),
                         type = "line",
                         showInLegend = TRUE,
