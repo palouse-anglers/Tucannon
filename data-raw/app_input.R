@@ -18,6 +18,11 @@ app_inputs <- list(
     wa_eco_flow_path = "https://apps.ecology.wa.gov/continuousflowandwq/",
     wa_eco_discharge_path = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/35B150/35B150_DSG_SD.PNG"),
   
+  WS = list(
+    HUC_name = "HUC 12 Watersheds",
+    county_huc = "Columbia County HUC12"
+  ),
+  
   # river restoration ----
   RR = list(
     river_rest_ttl = "Tucannon-Restoration",
@@ -27,6 +32,7 @@ app_inputs <- list(
   
     river_rest_arcgis = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=799651538e3f4cacb540a7ec8fba1ce7",
     river_rest_geo_arcgis = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5")
+  
   
 )
 
@@ -257,6 +263,7 @@ by_summer <- temp_params %>%
 
 
 private_ag_2019 <- 354543
+private_ag_2019_adj <- 334546
 county <- 558037
 
 # TODO update this
@@ -264,5 +271,5 @@ usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_
                   ag_wetlands, huc, huc_labels, stations, 
                   wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
                   station_water, station_stage, params, param_ranges, 
-                  by_year, by_month, by_summer, private_ag_2019, county,
+                  by_year, by_month, by_summer, private_ag_2019, private_ag_2019_adj, county,
                   overwrite = TRUE, internal = TRUE)
