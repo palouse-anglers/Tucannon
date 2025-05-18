@@ -262,6 +262,50 @@ by_summer <- temp_params %>%
   ))))
 
 
+# Watersheds ----
+
+watershed_tbl <- tibble::tribble(
+  ~choice, ~type, ~column, ~label,
+  "Change Detection", "Change", "Imperv", 'Impervious Surface Increase', 
+  "Change Detection", "Change", "SImperv", 'Semi-Impervious Surface Increase', 
+  "Change Detection", "Change", "TreeDec",'Tree Loss', 
+  "Change Detection", "Change", "TotalChg", 'Total Change',
+  "Erosion", "Erosion", "No_WtrEr_A", "None",
+  "Erosion", "Erosion", "Mod_Ac_Wtr", "Moderate",
+  "Erosion", "Erosion", "Severe_Ac_", "Severe",
+  "Wildlife", "Animal", "RM_Elk_Ac", "Elk",
+  "Wildlife", "Animal", "Mule_Dr_Ac", "Mule Deer",
+  "Wildlife", "Animal", "NWWT_Dr_Ac", "WT Deer",
+  "Wildlife", "Animal", "RN_Phea_Ac", "Pheasant",
+  "Wildlife", "Animal", "WtrFowl_Ac", "Water Fowl",
+  "Wildlife", "Animal", "Chuckar_Ac", "Chuckar",
+  "Wildlife", "Animal", "BHSheep_Ac", "Sheep",
+  "Geologically Hazardous Areas", "Severity", "GEONR", "Not rated",
+  "Geologically Hazardous Areas", "Severity", "GEOSLI", "Slight",
+  "Geologically Hazardous Areas", "Severity", "GEOMOD", "Moderate",
+  "Geologically Hazardous Areas", "Severity", "GEOSEV", "Severe",
+  "Geologically Hazardous Areas", "Severity", "GEONA", "NA",
+  "Wetlands", "Type", "Freshwater.Emergent.Wetland", "Emergent",
+  "Wetlands", "Type", "Freshwater.Forested.Shrub.Wetland", "Forested-Shrub",
+  "Wetlands", "Type", "Freshwater.Pond", "Pond",
+  "Wetlands", "Type", "Lake", "Lake",
+  "Wetlands", "Type", "Riverine", "Riverine",
+  "Wetlands", "Type", "Other", "Other",
+  "Landuse 2019", "Type", "Crops...Dryland_19", "Dryland Crops",
+  "Landuse 2019", "Type", "Cultivated.Crops_19", "Cultivated Crops",
+  "Landuse 2019", "Type", "Rangeland_19", "Rangeland",
+  "Landuse 2019", "Type", "Crops...Irrigated_19", "Irrigated Crops",
+  "SRP", "SRP", "SRP_ACRES", "SRP",
+  "Aquifers", "Aquifers", "Ground.Water...Well_Aquifer", "Aquifers",
+  "Landuse 2011", "Type", "Crops...Dryland", "Dryland Crops",
+  "Landuse 2011", "Type", "Rangeland", "Rangeland",
+  "Landuse 2011", "Type", "Crops...Irrigated", "Irrigated Crops",
+  "Frequently Flooded Areas", "Frequently Flooded Areas", "FLDACRE", "Frequently Flooded Areas",
+  "BMPs", NA, NA, NA,
+)
+
+
+
 private_ag_2019 <- 354543
 private_ag_2019_adj <- 334546
 county <- 558037
@@ -271,5 +315,5 @@ usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_
                   ag_wetlands, huc, huc_labels, stations, 
                   wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
                   station_water, station_stage, params, param_ranges, 
-                  by_year, by_month, by_summer, private_ag_2019, private_ag_2019_adj, county,
+                  by_year, by_month, by_summer, watershed_tbl, private_ag_2019, private_ag_2019_adj, county,
                   overwrite = TRUE, internal = TRUE)

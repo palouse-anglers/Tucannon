@@ -106,14 +106,14 @@ run_app <- function(){
                                                                                            hc_ts_wBMPsUI("hc_ts_temp"))
                                                                              ),
                                                                              # Info icon + soft red text
-                                                                             tags$hr(style = "margin-bottom: 0.25em;"),
-                                                                             tags$div(
+                                                                             shiny::tags$hr(style = "margin-bottom: 0.25em;"),
+                                                                             shiny::tags$div(
                                                                                # class = "text-danger",
                                                                                class = "d-flex justify-content-center align-items-center text-danger",
                                                                                style = "margin-top: 0; margin-bottom: 0.5em;",
                                                                                # style = "margin-top: 0.5em; margin-bottom: 1em; display: flex; align-items: center;",
                                                                                shiny::icon("info-circle", class = "me-2"),
-                                                                               tags$span("The following content is independent of the data filters above.")
+                                                                               shiny::tags$span("The following content is independent of the data filters above.")
                                                                              ),
                                                                              # Second row: 2 cards
                                                                              bslib::layout_column_wrap(
@@ -240,9 +240,9 @@ run_app <- function(){
                                                                                                       label = "Active BMPs",
                                                                                                       choices = c("Yes", "No"),
                                                                                                       checkIcon = list(
-                                                                                                        yes = tags$i(class = "fa fa-check-square",
+                                                                                                        yes = shiny::tags$i(class = "fa fa-check-square",
                                                                                                                      style = "color: #84563C"),
-                                                                                                        no = tags$i(class = "fa fa-square-o",
+                                                                                                        no = shiny::tags$i(class = "fa fa-square-o",
                                                                                                                     style = "color: #84563C")
                                                                                                       )
                                                                                  )
@@ -251,7 +251,42 @@ run_app <- function(){
                                                                                          shiny::uiOutput("bmps_box",
                                                                                                          fill = "container"))
                                                                              ),
-                                                                             bslib::card()
+                                                                             bslib::card(fill = TRUE,
+                                                                                         height = 600,
+                                                                                         full_screen = TRUE,
+                                                                                         style = "resize:both;",
+                                                                                         bslib::card_header(
+                                                                                           shinyWidgets::pickerInput(
+                                                                                             width = '250px',
+                                                                                             options = shinyWidgets::pickerOptions(
+                                                                                               `count-selected-text` = "{0} Categories Selected",
+                                                                                               container = "body",
+                                                                                               actionsBox = TRUE,
+                                                                                               liveSearch = TRUE,
+                                                                                               selectedTextFormat = 'count > 1'
+                                                                                             ),
+                                                                                             # build buttons for collective selection
+                                                                                             multiple = TRUE,
+                                                                                             inputId = "selectInput",
+                                                                                             label = "Category",
+                                                                                             choices = c(
+                                                                                               "Wildlife",
+                                                                                               "Aquifers",
+                                                                                               "Erosion",
+                                                                                               "Change Detection",
+                                                                                               "BMPs",
+                                                                                               "Frequently Flooded Areas",
+                                                                                               "SRP",
+                                                                                               "Wetlands",
+                                                                                               "Geologically Hazardous Areas",
+                                                                                               "Landuse 2011",
+                                                                                               "Landuse 2019"
+                                                                                             )
+                                                                                           )
+                                                                                           
+                                                                                         ),
+                                                                                         mod_watershedUI("watershed_tables")
+                                                                                         )
                                                                              
                                                                            )
                                                                            
@@ -332,6 +367,20 @@ run_app <- function(){
   
   
   app_server <- function(input, output, session) {
+    
+    # Fix for check
+    X <- NULL
+    fid_1 <- NULL
+    TNMID <- NULL
+    VPUID <- NULL
+    OID_ <- NULL
+    HUC12 <- NULL
+    Type <- NULL
+    Active <- NULL
+    V1 <- NULL
+    `Primary Land Use` <- NULL
+    `Private Acres` <- NULL
+    . <- NULL
     
     # Filtered params ----
     
@@ -441,7 +490,7 @@ run_app <- function(){
                           temp_av_year <- shiny::reactive({
                             filter_params(data = temp_by_year(),
                                           param_vals = "Temperature, water",
-                                          group_vars = c("Date"),
+                                          group_vars = c("Date", "Year"),
                                           arr_vars = c("Year"),
                                           round_dig = 2)
                           })
@@ -556,14 +605,14 @@ run_app <- function(){
                         
     if(input$navbar_id == "Watersheds Map"){
       
-      filtered_huc <- reactive({
+      filtered_huc <- shiny::reactive({
         
         huc %>%
           dplyr::filter(Name %in% input$watersheds)
         
       })
       
-      clicked_HUC <- reactiveVal(character(0))
+      clicked_HUC <- shiny::reactiveVal(character(0))
       
       shiny::observe({
         
@@ -578,6 +627,8 @@ run_app <- function(){
       output$selectedHUC <- DT::renderDataTable({
         # Check if clicked_HUC is NULL (no shape clicked yet)
         
+        
+        
         shiny::req(nrow(filtered_huc())>=1)
         
         DT::datatable(height = 900,
@@ -585,7 +636,7 @@ run_app <- function(){
                       data= filtered_huc() %>% 
                         sf::st_drop_geometry() %>%
                         dplyr::select(-c(X, fid_1, TNMID, VPUID, OID_))%>%
-                        dplyr::select(Name, HUC12, everything()),
+                        dplyr::select(Name, HUC12, dplyr::everything()),
                       extensions = 'Buttons',
                       filter = 'top',
                       options = list(
@@ -858,7 +909,7 @@ run_app <- function(){
       })
       
       
-      output$acres_box <- renderUI({
+      output$acres_box <- shiny::renderUI({
         
         bslib::value_box(
           title = "HUC Acres",
@@ -901,6 +952,21 @@ run_app <- function(){
                   showcase = shiny::icon("hammer"),
                   theme = "primary"
         )
+        
+      })
+      
+      selected_choicesrve = shiny::reactive(input$selectInput)
+      
+      mod_watershedServer("watershed_tables",
+                          selected_choices = selected_choicesrve,
+                          filtered_huc = filtered_huc,
+                          rve_bmps = rve_bmps)
+      
+      
+      shiny::observe({
+        
+        if(nrow(rve_bmps())>1)
+          shinyjs::show(id="show_bmp_plot")
         
       })
       
@@ -982,7 +1048,7 @@ run_app <- function(){
     # Landcover ----
     private_ag_2019rve <- shiny::reactiveValues(value = private_ag_2019)
 
-    observeEvent(input$corrected_checkbox, {
+    shiny::observeEvent(input$corrected_checkbox, {
       if (input$corrected_checkbox) {
         private_ag_2019rve$value <- private_ag_2019_adj
       } else {
@@ -1075,7 +1141,7 @@ run_app <- function(){
                                
                                
                              }} %>%
-        hc_exporting(
+        highcharter::hc_exporting(
           enabled = TRUE, 
           allowHTML = TRUE  
         )
