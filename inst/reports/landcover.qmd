@@ -1,0 +1,124 @@
+---
+title: "Landcover"
+format: 
+  typst-pdf:
+    engine: knitr
+    template-partials:
+      - typst-show.typ
+      - typst-template.typ
+    margin-top: 0.25in
+params:
+  watershed: "Default Watershed"
+  county_acres: 0
+  crit: "Blah"
+  corrected: FALSE
+  crit_data: null
+  private_ag_acres: null
+
+watershed: '`r params$watershed`'
+crit: '`r params$crit`'
+corrected: '`r params$corrected`'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(patchwork)
+```
+
+
+```{r functions, echo = FALSE}
+
+my_theme <- function(){
+  ggplot2::theme_void(base_family = "sans")+
+    ggplot2::theme()
+}
+
+ggplot2::update_geom_defaults(geom = "text",
+                              ggplot2::aes(family = "sans",
+                                           color = "#654e18"))
+
+ag_info_card <- function(title, acre_val) {
+  
+  acre_val <- scales::comma(acre_val)
+  
+  ggplot2::ggplot() +
+    ggplot2::geom_text(
+      ggplot2::aes(x = 1, y = 3, label = title),
+      fontface = "bold",
+      size = 10,
+      hjust = 0
+    ) +
+     ggplot2::geom_text(
+      ggplot2::aes(x = 1, y = 2, label = acre_val),
+      fontface = "bold",
+      size = 6.5,
+      hjust = 0
+    ) +
+    ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 4), expand = FALSE) +
+    my_theme()+
+    ggplot2::theme(plot.margin = margin(0,10,0,0))
+}
+
+crit_info_card <- function(crit, critdf, acre_val, county_ac){
+  total_ac <- sum(critdf$Private.Acres)
+  co_percent <- round((total_ac/acre_val) * 100, digits = 2)
+  whole_county <- round((total_ac/county_ac) * 100, digits = 2)
+  
+  total_ac <- scales::comma(total_ac)
+  
+  sum_nchar <- sum(nchar(as.character(co_percent)), nchar(as.character(whole_county)))
+  
+  if(sum_nchar <= 7){
+    smfs <- 6.5
+  } else {
+    smfs <- 5.5
+  }
+
+  lbl <- glue::glue("{co_percent}% in Ag and {whole_county}% of County")
+
+  ggplot2::ggplot() +
+    ggplot2::geom_text(
+      ggplot2::aes(x = 1, y = 3, label = crit),
+      fontface = "bold",
+      size = 10,
+      hjust = 0
+    ) +
+     ggplot2::geom_text(
+      aes(x = 1, y = 2, label = paste0(total_ac, " Acres")),
+      fontface = "bold",
+      size = 6.5,
+      hjust = 0
+    ) +
+    ggplot2::geom_text(
+      aes(x = 1, y = 1, label = lbl),
+      fontface = "bold",
+      size = smfs,
+      hjust = 0
+    ) +
+   ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 4), expand = FALSE, clip = "off") +
+   my_theme()+
+   ggplot2::theme(plot.margin = margin(0,0,0,0))
+}
+
+
+```
+
+
+```{r, echo = FALSE, fig.align='center'}
+#| fig-height: 2
+#| fig-width: 8.5
+
+t1 <- ag_info_card(title = "Private Ag Acres", acre_val = params$private_ag_acres)
+t2 <- crit_info_card(crit = params$crit, critdf = as.data.frame(params$crit_data), 
+               acre_val = params$private_ag_acres, county_ac = params$county_acres)
+
+t1 + t2
+
+```
+
+```{=typst}
+#line(length: 100%, stroke: 1pt + rgb("654e18"))
+```
+

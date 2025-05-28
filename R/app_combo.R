@@ -345,6 +345,18 @@ run_app <- function(){
                                                         shinydashboard::valueBoxOutput("lc_vbox")
                                           )),
                                         shiny::uiOutput("lc_tfl"),
+                                        shiny::hr(),
+                                        # bslib::card(
+                                          # bslib::card_header("Landcover Report"),
+                                          # bslib::card_body(
+                                            shiny::actionButton("landcover_report", "Generate Report"),
+                                            # ),
+                                          # height = "150px"
+                                        # ),
+                                        # bslib::card(
+                                        shiny::uiOutput("landcover_download"),
+                                        shiny::br()
+                                        # )
                                         
                                         
                        ),
@@ -1167,9 +1179,86 @@ run_app <- function(){
           full_screen = TRUE)
       )
       
-    }
+    })
     
+    ## Report ----
+    report_path <- shiny::reactiveVal(NULL)
+    
+    # Reset the report path if user changes inputs
+    observeEvent(input$critpick, {
+      report_path(NULL)
+    })
+    
+    observeEvent(input$corrected_checkbox, {
+      report_path(NULL)
+    })
+   
+    shiny::observeEvent(input$landcover_report, {
+
+      # Temporary file for the report
+      tmp_dir <- tempdir()
+      old_wd <- getwd()  # Save current working dir
+      
+      on.exit(setwd(old_wd))  
+      setwd(tmp_dir)
+      
+      # move lc-typst-template.typ and lc-typst-show.typ to temp dir
+      file.copy(system.file("reports", "lc-typst-show.typ", package = "Tucannon"), 
+                file.path(tmp_dir, "typst-show.typ"),
+                overwrite = TRUE)
+      file.copy(system.file("reports", "lc-typst-template.typ", package = "Tucannon"), 
+                file.path(tmp_dir, "typst-template.typ"),
+                overwrite = TRUE)
+      # Copy the QMD file into temp dir and use it as the input
+      file.copy(system.file("reports", "landcover.qmd", package = "Tucannon"), 
+                "landcover.qmd",
+                overwrite = TRUE)
+      
+      out_path <- "landcover.pdf"
+      
+      df <- switch(input$critpick,
+                   "Aquifers" = ag_crit_aquifer,
+                   "Wetlands" = ag_wetlands,
+                   "Geologic Hazard" = ag_geo_haz,
+                   "Wildlife" = ag_conservation_areas
+      )
+      
+      quarto::quarto_render(
+        input = "landcover.qmd",
+        output_file = out_path,
+        execute_params = list(
+          watershed = app_inputs$region,
+          county_acres = county,
+          crit = input$critpick,
+          corrected = input$corrected_checkbox,
+          crit_data = df,
+          private_ag_acres = if (input$corrected_checkbox)
+            private_ag_2019_adj
+          else
+            private_ag_2019
+        ), 
+        execute = TRUE
+      ) 
+      
+      file.path(tmp_dir, out_path) |> report_path()
+      
+    })
+    
+    output$landcover_download <- shiny::renderUI({
+      shiny::req(report_path())
+      shiny::downloadButton("download_report", "Download Report")
+    })
+    
+    output$download_report <- shiny::downloadHandler(
+      filename = function() paste0("landcover_report_",
+                                   stringr::str_replace_all(stringr::str_to_lower(input$critpick), " ", "_"),"_",
+                                   if(input$corrected_checkbox) "corrected_" else NULL, 
+                                   Sys.Date(), ".pdf"),
+      content = function(file) {
+        file.copy(report_path(), file)
+      }
     )
+    
     
     
   }
