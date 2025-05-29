@@ -13,7 +13,7 @@
 
  set page(
     "us-letter",
-    margin: (left: 1in, right: 1in, top: 1.1in, bottom: 1in),
+    margin: (left: 1in, right: 1in, top: 1.1in, bottom: 0.5in),
     background: place(top, rect(fill: rgb("5E9300"), width: 100%, height: 0.90in)),
     header: align(
       horizon,
@@ -31,7 +31,7 @@
     footer: align(
       grid(
         columns: (40%, 60%),
-        align(horizon, text(fill: rgb("15397F"), size: 12pt, counter(page).display("1")))
+        align(horizon, text(fill: rgb("654e18"), size: 12pt, counter(page).display("1")))
       )
     )
   )

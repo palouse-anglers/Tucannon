@@ -24,7 +24,31 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(ggplot2)
+library(dplyr)
+library(scales)
+library(ggtext)
 library(patchwork)
+```
+
+```{r prep, include=FALSE}
+
+df <- as.data.frame(params$crit_data)
+
+total_ac <- sum(df$Private.Acres)
+co_percent <- round((total_ac/params$private_ag_acres) * 100, digits = 2)
+whole_county <- round((total_ac/params$county_acres) * 100, digits = 2)
+
+
+highlight_color <- "#5E9300"
+base_color <- "#654e18"
+
+if(params$crit == "Wetlands"){
+  crit2 = "Wetland"
+} else {
+  crit2 = params$crit
+}
+  
+
 ```
 
 
@@ -39,26 +63,127 @@ ggplot2::update_geom_defaults(geom = "text",
                               ggplot2::aes(family = "sans",
                                            color = "#654e18"))
 
+prog_plot <- function(min, max, value, 
+                      x_lbl,
+                      highlight_color, base_color, 
+                      value_type){
+  
+  p <- ggplot2::ggplot(data = data.frame(x = value, y = 1), 
+                       ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_segment(x = min, xend = max, y = 1, yend = 1, color = base_color, alpha = 0.5)+
+    ggplot2::geom_point(shape = 124,
+               color = highlight_color,
+               size = 12)+
+    ggplot2::labs(x = x_lbl)+
+    ggplot2::theme_void()+
+    ggplot2::theme(axis.text.x = ggplot2::element_text(color = base_color, size = 9),
+          axis.title.x = ggplot2::element_text(color = base_color, size = 12, face = "bold",
+                                      margin = margin(10, 0, 0, 0)),
+          plot.margin = margin(0,5,5,15))+
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::scale_y_continuous(limits = c(0.8, 1.7))
+  
+  if (value_type == "percent") {
+    final_plot <- p +
+          ggplot2::geom_text(
+            ggplot2::aes(label = scales::percent(value)),
+                    color = highlight_color,
+               size = 4,
+               vjust = -5)+
+
+      ggplot2::scale_x_continuous(limits = c(min, max),
+        labels = scales::percent_format(accuracy = 1)
+      )
+  }
+
+  if (value_type == "number") {
+    final_plot <- p +
+      ggplot2::geom_text(
+        ggplot2::aes(label = scales::comma(value)),
+                    color = highlight_color,
+               size = 4,
+               vjust = -5)+
+      ggplot2::scale_x_continuous(limits = c(min, max(max, value)),
+        labels = scales::comma_format(accuracy = 1)
+      )
+  }
+
+  return(final_plot)
+
+}
+
+
+big_num_text <- function(header, value, text = NULL, value_type, highlight_color, base_color){
+  
+  if(value_type == "percent"){
+    value_fmt <- scales::percent(value, accuracy = 0.01, scale = 1)
+  }
+  if(value_type == "number"){
+    value_fmt <- scales::comma(value, accuracy = 1)
+  }
+  
+  if(nchar(header) > 23){
+    size_corr <- 0.85
+  } else {
+    size_corr <- 0
+  }
+  
+  p <- ggplot2::ggplot() +
+  # Header
+    ggplot2::geom_text(
+      ggplot2::aes(x = 1, y = 3.25, label = header),
+      fontface = "bold",
+      color = base_color,
+      size = 6-size_corr,
+      hjust = 0
+    ) +
+   ggplot2::geom_text(
+      ggplot2::aes(x = 1, y = 2, label = value_fmt),
+      fontface = "bold",
+      color = highlight_color,
+      size = 9-size_corr,
+      hjust = 0
+    )+
+    ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 4), expand = FALSE) +
+    my_theme()+
+    ggplot2::theme(plot.margin = margin(0,0,0,0))
+  
+  if(!is.null(text)){
+    p <- p+
+      ggtext::geom_richtext(
+      ggplot2::aes(x = 1, y = 0.6, label = text),
+      label.color = NA,
+      fill = NA,
+      size = 5,
+      hjust = 0
+    )
+  }
+  
+  return(p)
+  
+}
+
+
 ag_info_card <- function(title, acre_val) {
   
   acre_val <- scales::comma(acre_val)
   
   ggplot2::ggplot() +
     ggplot2::geom_text(
-      ggplot2::aes(x = 1, y = 3, label = title),
+      ggplot2::aes(x = 1, y = 4, label = title),
       fontface = "bold",
       size = 10,
       hjust = 0
     ) +
      ggplot2::geom_text(
-      ggplot2::aes(x = 1, y = 2, label = acre_val),
+      ggplot2::aes(x = 1, y = 1, label = acre_val),
       fontface = "bold",
       size = 6.5,
       hjust = 0
     ) +
-    ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 4), expand = FALSE) +
-    my_theme()+
-    ggplot2::theme(plot.margin = margin(0,10,0,0))
+    ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 5), expand = FALSE, clip = "off") +
+    my_theme()
+    # ggplot2::theme(plot.margin = margin(0,0,0,0))
 }
 
 crit_info_card <- function(crit, critdf, acre_val, county_ac){
@@ -76,43 +201,92 @@ crit_info_card <- function(crit, critdf, acre_val, county_ac){
     smfs <- 5.5
   }
 
-  lbl <- glue::glue("{co_percent}% in Ag and {whole_county}% of County")
+  # lbl <- glue::glue("{co_percent}% in Ag and {whole_county}% of County")
 
   ggplot2::ggplot() +
     ggplot2::geom_text(
-      ggplot2::aes(x = 1, y = 3, label = crit),
+      ggplot2::aes(x = 1, y = 4, label = crit),
       fontface = "bold",
       size = 10,
       hjust = 0
     ) +
      ggplot2::geom_text(
-      aes(x = 1, y = 2, label = paste0(total_ac, " Acres")),
+      aes(x = 1, y = 1, label = paste0(total_ac, " Acres")),
       fontface = "bold",
       size = 6.5,
       hjust = 0
     ) +
-    ggplot2::geom_text(
-      aes(x = 1, y = 1, label = lbl),
-      fontface = "bold",
-      size = smfs,
-      hjust = 0
-    ) +
-   ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 4), expand = FALSE, clip = "off") +
-   my_theme()+
-   ggplot2::theme(plot.margin = margin(0,0,0,0))
+    # ggplot2::geom_text(
+    #   aes(x = 1, y = 1, label = lbl),
+    #   fontface = "bold",
+    #   size = smfs,
+    #   hjust = 0
+    # ) +
+   ggplot2::coord_fixed(xlim = c(0, 12), ylim = c(0, 5), expand = FALSE, clip = "off") +
+   my_theme()
+   # ggplot2::theme(plot.margin = margin(0,0,0,0))
 }
 
 
 ```
 
 
-```{r, echo = FALSE, fig.align='center'}
-#| fig-height: 2
+```{r, echo = FALSE}
+#| fig-height: 1
 #| fig-width: 8.5
 
 t1 <- ag_info_card(title = "Private Ag Acres", acre_val = params$private_ag_acres)
 t2 <- crit_info_card(crit = params$crit, critdf = as.data.frame(params$crit_data), 
                acre_val = params$private_ag_acres, county_ac = params$county_acres)
+
+
+(t2 + ggplot2::theme(plot.margin = unit(c(0, 125,0,0), "pt"))) +
+(t1 + ggplot2::theme(plot.margin = unit(c(0,0,0, 0), "pt")))
+
+
+```
+
+```{=typst}
+#line(length: 100%, stroke: 1pt + rgb("654e18"))
+```
+
+```{r, echo = FALSE, fig.align='center'}
+#| fig-height: 2
+#| fig-width: 8.5
+
+
+
+t1 <- prog_plot(min = 0, max = params$private_ag_acres,
+                value = total_ac, highlight_color = highlight_color,
+          value_type = "number", base_color = base_color,
+          x_lbl = paste0(crit2," Acres of Ag Acres"))
+
+lbl <- glue::glue("<b>{scales::percent(co_percent, accuracy = 0.01, scale = 1)}</b> of agricultural acres are<br>categorized as <b>{params$crit}</b>")
+
+t2 <- big_num_text(header = toupper(paste0("Ag ", crit2, " Acres")), value = co_percent,
+             text = lbl,
+             value_type = "percent", highlight_color = highlight_color,
+         base_color = base_color)
+
+t2 + t1
+
+```
+
+```{r, echo = FALSE, fig.align='center'}
+#| fig-height: 2
+#| fig-width: 8.5
+
+t1 <- prog_plot(min = 0, max = params$county_acres,
+                value = total_ac, highlight_color = highlight_color,
+          value_type = "number", base_color = base_color,
+          x_lbl = paste0(crit2," Acres of County Acres"))
+
+lbl <- glue::glue("<b>{scales::percent(whole_county, accuracy = 0.01, scale = 1)}</b> of county acres are<br>categorized as <b>{params$crit}</b>")
+
+t2 <- big_num_text(header = toupper(paste0("County ", crit2, " Acres")), value = whole_county,
+             text = lbl,
+             value_type = "percent", highlight_color = highlight_color,
+         base_color = base_color)
 
 t1 + t2
 
@@ -120,5 +294,86 @@ t1 + t2
 
 ```{=typst}
 #line(length: 100%, stroke: 1pt + rgb("654e18"))
+```
+
+```{r, echo = FALSE}
+#| fig-height: 1.5
+#| fig-width: 8.5
+
+sum_lu <- df %>% 
+  dplyr::group_by(Primary.Land.Use) %>% 
+  dplyr::summarise(acres = sum(Private.Acres, na.rm = TRUE)) %>% 
+  dplyr::ungroup() %>% 
+ dplyr:: mutate(grp = "Primary\nLand\nUse",
+         cumsum_acres = cumsum(acres),
+         perc =  (acres / sum(acres))*100,
+         perccs = (cumsum_acres / sum(acres))*100,
+         perccsc = scales::percent(perccs, scale = 1),
+         perccs = round(perccs, 1),
+         Primary.Land.Use = factor(Primary.Land.Use))
+
+fill_colors <- c(
+  highlight_color,
+  colorspace::lighten(highlight_color, 0.3),
+  colorspace::lighten(highlight_color, 0.5),
+  colorspace::lighten(highlight_color, 0.7)
+)
+
+ggplot2::ggplot(sum_lu, 
+                ggplot2::aes(y = grp, x = perc, fill = Primary.Land.Use))+
+  ggplot2::geom_bar(stat = "identity", width = 0.6, position = ggplot2::position_fill(reverse = TRUE))+
+  ggplot2::scale_x_continuous(labels = scales::label_percent())+
+  ggplot2::scale_fill_manual(values = fill_colors)+
+  ggplot2::theme_void()+
+  ggplot2::labs(title = paste0("PRIMARY LAND USE OF ", toupper(crit2), " ACRES"))+
+  ggplot2::theme(legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.title = ggplot2::element_blank(),
+        axis.text = ggplot2::element_text(size = 11, color = base_color),
+        plot.title = ggplot2::element_text(size = 16, color = base_color, face = "bold", hjust = 0.5),
+        axis.text.y = ggplot2::element_blank(),
+        legend.text = ggplot2::element_text(size = 12, color = base_color)
+        )
+
+```
+
+```{r, eval = !params$crit == "Geologic Hazard", echo = FALSE, message=FALSE, warning = FALSE}
+#| fig-height: 4
+#| fig-width: 8.5
+
+col_focus <- colnames(df)[!colnames(df) %in% c("V1","Primary.Land.Use", "Private.Acres")]
+
+sum_lu <- df %>% 
+  dplyr::rename(var_int = !!sym(col_focus)) %>% 
+  dplyr::group_by(Primary.Land.Use, var_int) %>% 
+  dplyr::summarise(acres = sum(Private.Acres, na.rm = TRUE)) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::group_by(Primary.Land.Use) %>% 
+  dplyr::mutate(perc =  (acres / sum(acres))*100) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::complete(Primary.Land.Use, var_int, fill = list(acres = 0, perc = 0)) %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(Primary.Land.Use = factor(Primary.Land.Use),
+         var_int = factor(var_int))
+
+ggplot2::ggplot(sum_lu, 
+                ggplot2::aes(x = perc, y = var_int, fill = Primary.Land.Use))+
+  ggplot2::geom_bar(stat = "identity",
+           show.legend = FALSE)+
+  ggplot2::geom_text(
+    ggplot2::aes(label = scales::percent(perc, accuracy = 1, scale = 1), color = Primary.Land.Use),
+            fontface = "bold", hjust = -0.1, size = 4, show.legend = FALSE) +
+  ggplot2::scale_fill_manual(values = fill_colors)+
+  ggplot2::scale_color_manual(values = fill_colors)+
+  ggplot2::facet_wrap(~Primary.Land.Use, ncol = 4)+
+  ggplot2::theme_minimal()+
+  ggplot2::scale_x_continuous(expand = expansion(mult = c(0, 0.25)))+
+  ggplot2::scale_y_discrete(label = function(x) stringr::str_wrap(x, width = 8))+
+  ggplot2::theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text.x = element_blank(),
+        strip.text = element_blank(),
+        axis.text.y = element_text(size = 11, color = base_color))
+
 ```
 
