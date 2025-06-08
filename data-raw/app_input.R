@@ -3,6 +3,9 @@
 
 app_inputs <- list(
   
+  county_name  = "Columbia",
+  county_term = "Columbia County",
+  
   region = "Tucannon",
   gauge_location = "Marengo",
   
@@ -15,8 +18,22 @@ app_inputs <- list(
     wa_eco_discharge_ttl = "Tucannon-Marengo 35B150",
   
     usgs_flow_path = "https://dashboard.waterdata.usgs.gov/api/gwis/2.1/service/site?agencyCode=USGS&siteNumber=13344500&open=151971",
-    wa_eco_flow_path = "https://apps.ecology.wa.gov/continuousflowandwq/",
+    # wa_eco_flow_path = "https://apps.ecology.wa.gov/continuousflowandwq/",
+    wa_eco_flow_path = "https://gis.ecology.wa.gov/portal/apps/instant/basic/index.html?appid=fb8ab17802754f689a0025414c4b8d66&level=8",
     wa_eco_discharge_path = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/35B150/35B150_DSG_SD.PNG"),
+  
+  WQ2 = list(
+    usgs_flow_ttl = "Touchet-Gallaher 14016820",
+    usgs_flow_path = "https://dashboard.waterdata.usgs.gov/api/gwis/2.1.1/service/site?agencyCode=USGS&siteNumber=14016820&open=338720",
+    
+    wa_eco_discharge_ttl1 = "Touchet-Bolles 32B100",
+    wa_eco_discharge_path1 = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/32B100/32B100_STG_SD.PNG",
+    wa_eco_discharge_ttl2 = "Touchet-Dayton 32E050",
+    wa_eco_discharge_path2 = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/32E050/32E050_STG_SD.PNG",
+    wa_eco_discharge_ttl3 = "Touchet-Mountain Home Pk. 32K070",
+    wa_eco_discharge_path3 = "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/32K070/32K070_STG_SD.PNG"
+    
+  ),
   
   WS = list(
     HUC_name = "HUC 12 Watersheds",
@@ -29,9 +46,15 @@ app_inputs <- list(
     river_rest_head = "Tucannon Restoration Projects",
     river_rest_geo_ttl = "Tucannon-Assessment",
     river_rest_geo_head = "Tucannon Geomorphic Assessment",
+    river_rest_geo_ttl2 = "Touchet-Assessment",
+    river_rest_geo_head2 = "Touchet Geomorphic Assessment",
   
     river_rest_arcgis = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=799651538e3f4cacb540a7ec8fba1ce7",
-    river_rest_geo_arcgis = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5")
+    river_rest_geo_arcgis = "https://ctuirgis.maps.arcgis.com/apps/webappviewer/index.html?id=a9cb09c5dfb04adbb4110871dce534d5",
+    
+    river_rest_geo_arcgis2 = "https://www.arcgis.com/apps/webappviewer/index.html?id=14681ec2671b4b9eab41bb0b786a8caa"
+    
+    )
   
   
 )
@@ -110,7 +133,7 @@ freq_flood <- sf::st_read("inst/huc_merge/freq_flood_huc_merge.shp", quiet = TRU
   dplyr::select(SYMBOL, Acrs_n_)
 
 
-# BMPs ----
+## BMPs ----
 
 bmp_points <-  sf::st_read("inst/huc_merge/BMP_points.shp", quiet = TRUE) 
 bmp_lines <-  sf::st_read("inst/huc_merge/BMP_line.shp", quiet = TRUE)
@@ -211,7 +234,7 @@ by_year <- temp_params %>%
                                      list(menuItems = 
                                             list(list(
                                               textKey = "downloadPNG",
-                                              onclick = JS("function() { this.exportChart(); }")
+                                              onclick = highcharter::JS("function() { this.exportChart(); }")
                                             )))))
 
 
@@ -234,7 +257,7 @@ by_month <- temp_params %>%
                                              list(menuItems = 
                                                     list(list(
                                                       textKey = "downloadPNG",
-                                                      onclick = JS("function() { this.exportChart(); }")
+                                                      onclick = highcharter::JS("function() { this.exportChart(); }")
                                                     )))))
 
 
@@ -257,7 +280,94 @@ by_summer <- temp_params %>%
   highcharter::hc_exporting(enabled = TRUE, buttons = list(contextButton = list(menuItems = list(
     list(
       textKey = "downloadPNG",
-      onclick = JS("function() { this.exportChart(); }")
+      onclick = highcharter::JS("function() { this.exportChart(); }")
+    )
+  ))))
+
+### Touchet ----
+params_2 <-  data.table::fread("inst/touchet_eim_processed/touchet_filtered.csv")
+
+param_ranges_2 <- params_2 %>%
+  dplyr::group_by(Param, Units) %>%
+  dplyr::summarise(Min_Date = range(Date)[1], 
+                   Max_Date = range(Date)[2]) %>%
+  dplyr::distinct()
+
+temp_params_2 <- params_2 %>%
+  dplyr::filter(Param == "Temperature, water") %>%
+  dplyr::group_by(Date) %>%
+  dplyr::summarise(Result = mean(Result, na.rm = TRUE)) %>%
+  dplyr::mutate(
+    Month = lubridate::month(Date, label = TRUE, abbr = TRUE),
+    Year = lubridate::year(Date),
+    Year2 = factor(Year)
+  ) %>%
+  dplyr::arrange(Year, Month) %>%
+  dplyr::filter(Result > 0) %>%
+  dplyr::ungroup()
+
+by_year_2 <- temp_params_2 %>%
+  dplyr::group_by(Year) %>%
+  dplyr::summarise(Result = round(mean(Result, na.rm = TRUE), 2)) %>%
+  dplyr::ungroup() %>%
+  highcharter::hchart("line", 
+                      highcharter::hcaes(x = Year, y = Result), 
+                      name = "Degrees C") %>%
+  #highcharter::hc_rangeSelector(enabled = TRUE) %>%
+  highcharter::hc_yAxis(title = list(text = "Degrees C")) %>%
+  highcharter::hc_title(text = "Annual Average") %>%
+  highcharter::hc_exporting(enabled = TRUE, buttons = 
+                              list(contextButton =
+                                     list(menuItems = 
+                                            list(list(
+                                              textKey = "downloadPNG",
+                                              onclick = highcharter::JS("function() { this.exportChart(); }")
+                                            )))))
+
+
+by_month_2 <- temp_params_2 %>%
+  dplyr::group_by(Month) %>%
+  dplyr::summarise(Result = round(mean(Result, na.rm = TRUE), 2)) %>%
+  dplyr::ungroup() %>%
+  highcharter::hchart("areaspline", 
+                      highcharter::hcaes(x = Month, y = Result), 
+                      name = "deg C",
+                      tooltip = list(
+                        headerFormat = "Month: {point.key}<br/>",
+                        pointFormat = "Result: {point.y} deg C"
+                      )) %>%
+  #hc_rangeSelector(enabled = TRUE) %>%
+  highcharter::hc_yAxis(title = list(text = "Temperature deg C")) %>%
+  highcharter::hc_title(text = "Monthly Average") %>%
+  highcharter::hc_exporting(enabled = TRUE, 
+                            buttons = list(contextButton = 
+                                             list(menuItems = 
+                                                    list(list(
+                                                      textKey = "downloadPNG",
+                                                      onclick = highcharter::JS("function() { this.exportChart(); }")
+                                                    )))))
+
+
+by_summer_2 <- temp_params_2 %>%
+  dplyr::filter(Year >= 2014,
+                Month %in% c("May", "Jun", "Jul", "Aug")) %>%
+  dplyr::group_by(Year, Month) %>%
+  dplyr::summarise(Result = round(mean(Result, na.rm = TRUE), 2)) %>%
+  dplyr::ungroup() %>%
+  highcharter::hchart("bubble", 
+                      highcharter::hcaes(x = Month, 
+                                         y = Result, 
+                                         group = Year),
+                      tooltip = list(
+                        headerFormat = "Year: {series.name}<br/>Month: {point.key}<br/>",
+                        pointFormat = "Result: {point.y} deg C"
+                      )) %>%
+  highcharter::hc_yAxis(title = list(text = "Temperature deg C")) %>%
+  highcharter::hc_title(text = "Summer Months") %>%
+  highcharter::hc_exporting(enabled = TRUE, buttons = list(contextButton = list(menuItems = list(
+    list(
+      textKey = "downloadPNG",
+      onclick = highcharter::JS("function() { this.exportChart(); }")
     )
   ))))
 
@@ -316,4 +426,5 @@ usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_
                   wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
                   station_water, station_stage, params, param_ranges, 
                   by_year, by_month, by_summer, watershed_tbl, private_ag_2019, private_ag_2019_adj, county,
+                  params_2, param_ranges_2, temp_params_2, by_year_2, by_month_2, by_summer_2,
                   overwrite = TRUE, internal = TRUE)

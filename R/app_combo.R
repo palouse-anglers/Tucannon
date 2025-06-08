@@ -19,19 +19,18 @@ run_app <- function(){
   )
   
   theme = bslib::bs_theme(
-    fg = "rgb(101, 78, 24)", primary = "#5E9300",
+    fg = "#654e18", primary = "#5E9300",
     success = "#2c3e50", font_scale = NULL, bg = "#fff"
   )
   
   options(highcharter.lang = list(thousandsSep = ","))
   
   app_ui <- function(request) {
-    bslib::page_navbar(title = app_inputs$region,
+    bslib::page_navbar(title = app_inputs$county_term,
                        theme = theme,
                        id = "navbar_id",
-                       # Water Quality ----                   
-                       bslib::nav_panel(title = "Water Quality",
-                                        # TODO modularize this
+                       # Tucannon WQ ----                   
+                       bslib::nav_panel(title = "Tucannon Water Quality",
                                         shiny::fluidRow(
                                           shinyWidgets::sliderTextInput(
                                             inputId = "dateRange",
@@ -61,17 +60,31 @@ run_app <- function(){
                                                                                  shiny::icon("info-circle", class = "me-2"),
                                                                                  shiny::tags$span(" The following content is independent of the data filters above.")
                                                                            ),
-                                                                           bslib::card(
-                                                                             full_screen = TRUE,
-                                                                             title = app_inputs$WQ$usgs_flow_ttl,
-                                                                             bslib::card_header(app_inputs$WQ$usgs_flow_ttl),
-                                                                             status = "info",
-                                                                             width = "100%",
-                                                                             iframeUI("iframe_usgs_flow"),
-                                                                             iframeUI("iframe_wa_eco_flow"),
-                                                                             # TODO I think this should move out to its own card and be centered 
-                                                                             bslib::card_header(app_inputs$WQ$wa_eco_discharge_ttl),
-                                                                             iframeUI("iframe_wa_eco_discharge"),
+                                                                           bslib::page_fluid(
+                                                                             bslib::layout_columns(
+                                                                             bslib::card(
+                                                                               full_screen = TRUE,
+                                                                               bslib::card_header(app_inputs$WQ$usgs_flow_ttl),
+                                                                               status = "info",
+                                                                               # width = "100%",
+                                                                               iframeUI("iframe_usgs_flow")
+                                                                             ),
+                                                                             bslib::card(
+                                                                               full_screen = TRUE,
+                                                                               bslib::card_header(app_inputs$WQ$wa_eco_discharge_ttl),
+                                                                               status = "info",
+                                                                               height = "700px",
+                                                                               iframeUI("iframe_wa_eco_discharge"),
+                                                                             ),
+                                                                             bslib::card(
+                                                                               full_screen = TRUE,
+                                                                               bslib::card_header("State-wise Stations"),
+                                                                               status = "info",
+                                                                               # width = "100%",
+                                                                               iframeUI("iframe_wa_eco_flow"),
+                                                                             ),
+                                                                             col_widths = c(12, 12, 12)
+                                                                             )
                                                                            )
                                                           ),
                                                           bslib::nav_panel(title = paste0(app_inputs$gauge_location," DOE Gauge"),
@@ -198,6 +211,121 @@ run_app <- function(){
                                                                            DT::dataTableOutput("params_table")))
                                         
                        ),
+                       # Touchet WQ ----
+                       bslib::nav_panel(title = "Touchet Water Quality",
+                                        shiny::fluidRow(
+                                          shinyWidgets::sliderTextInput(
+                                            inputId = "dateRange_2",
+                                            label = "Filter by year", 
+                                            choices = 1973:2024, # range of data
+                                            selected = c(2011,2024), # 2011 to current year
+                                            grid = FALSE
+                                          ),
+                                          shinyWidgets::pickerInput(width = '400px',
+                                                                    options = shinyWidgets::pickerOptions(
+                                                                      `count-selected-text` = "{0} Months Selected",
+                                                                      container = "body",
+                                                                      actionsBox = TRUE,
+                                                                      liveSearch=TRUE,selectedTextFormat= 'count > 3'),   # build buttons for collective selection
+                                                                    multiple = TRUE,
+                                                                    inputId = "monthRange_2",
+                                                                    label = "Filter by month", 
+                                                                    choices = month.abb[c(1:12)],
+                                                                    selected = month.abb[c(1:12)])
+                                        ),
+                                        bslib::navset_tab(id = "WQ_navset_tabs_id_2",
+                                                          bslib::nav_panel(title = "Realtime Flows",
+                                                                           
+                                                                           shiny::tags$div(
+                                                                             class = "text-danger",
+                                                                             style = "margin-top: 1em; margin-bottom: 1em; display: flex; align-items: center;",
+                                                                             shiny::icon("info-circle", class = "me-2"),
+                                                                             shiny::tags$span(" The following content is independent of the data filters above.")
+                                                                           ),
+                                                                           bslib::page_fluid(
+                                                                             bslib::layout_columns(
+                                                                               bslib::card(
+                                                                                 full_screen = TRUE,
+                                                                                 bslib::card_header(app_inputs$WQ2$usgs_flow_ttl),
+                                                                                 status = "info",
+                                                                                 iframeUI("iframe_usgs_flow_2")
+                                                                               ),
+                                                                               bslib::card(
+                                                                                 full_screen = TRUE,
+                                                                                 title = app_inputs$WQ2$wa_eco_discharge_ttl1,
+                                                                                 bslib::card_header(app_inputs$WQ2$wa_eco_discharge_ttl1),
+                                                                                 status = "info",
+                                                                                 height = "700px",
+                                                                                 iframeUI("iframe_wa_eco_discharge_2_1"),
+                                                                               ),
+                                                                               bslib::card(
+                                                                                 full_screen = TRUE,
+                                                                                 title = app_inputs$WQ2$wa_eco_discharge_ttl2,
+                                                                                 bslib::card_header(app_inputs$WQ2$wa_eco_discharge_ttl2),
+                                                                                 status = "info",
+                                                                                 height = "700px",
+                                                                                 iframeUI("iframe_wa_eco_discharge_2_2"),
+                                                                               ),
+                                                                               bslib::card(
+                                                                                 full_screen = TRUE,
+                                                                                 title = app_inputs$WQ2$wa_eco_discharge_ttl3,
+                                                                                 bslib::card_header(app_inputs$WQ2$wa_eco_discharge_ttl3),
+                                                                                 status = "info",
+                                                                                 height = "700px",
+                                                                                 iframeUI("iframe_wa_eco_discharge_2_3"),
+                                                                               ),
+                                                                               bslib::card(
+                                                                                 full_screen = TRUE,
+                                                                                 bslib::card_header("State-wide Stations"),
+                                                                                 status = "info",
+                                                                                 iframeUI("iframe_wa_eco_flow_2")#
+                                                                               ),
+                                                                               col_widths = c(12, 12, 12, 12, 12)
+                                                                             )
+                                                                           )  
+                                                          ),
+                                                          bslib::nav_panel(title = "Temperature",
+                                                                           # First row: 3 cards
+                                                                           bslib::layout_column_wrap(
+                                                                             width = 1/3,
+                                                                             bslib::card(full_screen = TRUE, 
+                                                                                         hc_lineUI("hc_line_temp_an_2")),
+                                                                             bslib::card(full_screen = TRUE, 
+                                                                                         hc_boxUI("hc_box_temp_2")),
+                                                                             bslib::card(full_screen = TRUE, 
+                                                                                         hc_ts_wBMPsUI("hc_ts_temp_2"))
+                                                                           ),
+                                                                           # Info icon + soft red text
+                                                                           shiny::tags$hr(style = "margin-bottom: 0.25em;"),
+                                                                           shiny::tags$div(
+                                                                             # class = "text-danger",
+                                                                             class = "d-flex justify-content-center align-items-center text-danger",
+                                                                             style = "margin-top: 0; margin-bottom: 0.5em;",
+                                                                             # style = "margin-top: 0.5em; margin-bottom: 1em; display: flex; align-items: center;",
+                                                                             shiny::icon("info-circle", class = "me-2"),
+                                                                             shiny::tags$span("The following content is independent of the data filters above.")
+                                                                           ),
+                                                                           # Second row: 2 cards
+                                                                           bslib::layout_column_wrap(
+                                                                             width = 1/2,
+                                                                             bslib::card(full_screen = TRUE,
+                                                                                         by_summer_2),  # TODO Add content
+                                                                             bslib::card(full_screen = TRUE,
+                                                                                         by_month_2)   # TODO Add content
+                                                                           )
+                                                          ),
+                                                          bslib::nav_panel(title = "Dissolved Oxygen",
+                                                                           bslib::layout_column_wrap(
+                                                                             bslib::card( 
+                                                                               full_screen = TRUE,
+                                                                               style = "resize:both;",
+                                                                               bslib::card_header("Dissolved Oxygen"),
+                                                                               hc_ts_wBMPsUI("hc_ts_do_2")
+                                                                             ))),
+                                                          bslib::nav_panel(title = "Date Ranges",
+                                                                           DT::datatable(param_ranges_2)
+                                                          ))),
+                       
                        # Watersheds ----
                        bslib::nav_panel(title = "Watersheds Map",
                                         bslib::navset_tab(id = "watersheds_map_id",
@@ -300,24 +428,31 @@ run_app <- function(){
                        bslib::nav_panel(title = "River Restoration",
                                         bslib::navset_tab(
                                           id = "navset_tabs_river_rest",
-                                          bslib::nav_panel(title = "Restoration",
+                                          bslib::nav_panel(title = "Tucannon Restoration",
                                                            bslib::card(
                                                              full_screen = TRUE,
-                                                             title = app_inputs$RR$river_rest_ttl,
-                                                             bslib::card_header(app_inputs$RR$river_rest_head),
+                                                             # bslib::card_header(app_inputs$RR$river_rest_head),
                                                              status = "info",
                                                              width = "100%",
                                                              iframeUI("iframe_rest"),
                                                              bslib::card_footer(text_boxes$river_rest_ftn)
                                                            )),
-                                          bslib::nav_panel(title = "Geomorphic Assessment",
+                                          bslib::nav_panel(title = "Tucannon Geomorphic Assessment",
                                                            bslib::card(
                                                              full_screen = TRUE,
-                                                             title = app_inputs$RR$river_rest_geo_ttl,
-                                                             bslib::card_header(app_inputs$RR$river_rest_geo_head),
+                                                             # bslib::card_header(app_inputs$RR$river_rest_geo_head),
                                                              status = "info",
                                                              width = "100%",
                                                              iframeUI("iframe_rest_geo"),
+                                                             bslib::card_footer(text_boxes$river_rest_ftn)
+                                                           )),
+                                          bslib::nav_panel(title = "Touchet Geomorphic Assessment",
+                                                           bslib::card(
+                                                             full_screen = TRUE,
+                                                             # bslib::card_header(app_inputs$RR$river_rest_geo_head2),
+                                                             status = "info",
+                                                             width = "100%",
+                                                             iframeUI("iframe_rest_geo_2"),
                                                              bslib::card_footer(text_boxes$river_rest_ftn)
                                                            ))
                                         )),
@@ -346,14 +481,8 @@ run_app <- function(){
                                           )),
                                         shiny::uiOutput("lc_tfl"),
                                         shiny::hr(),
-                                        # bslib::card(
-                                          # bslib::card_header("Landcover Report"),
-                                          # bslib::card_body(
-                                            shiny::actionButton("landcover_report", "Generate Report"),
-                                            # ),
-                                          # height = "150px"
-                                        # ),
-                                        # bslib::card(
+                                        # shinybusy::add_busy_spinner(spin = "fading-circle", color = "#5E9300"),
+                                        shiny::actionButton("landcover_report", "Generate Report", class = "btn btn-primary"),
                                         shiny::uiOutput("landcover_download"),
                                         shiny::br()
                                         # )
@@ -400,7 +529,26 @@ run_app <- function(){
       filter_data_bytime(params, 
                          year_range = input$dateRange, 
                          month_vals = input$monthRange) %>% 
-        dplyr::left_join(bmps_byyear, by = "Year")
+        dplyr::left_join(bmps_byyear %>%
+                           dplyr::filter(
+                             Year >= input$dateRange[1] &  
+                               Year <= input$dateRange[2]
+                           ), by = "Year")
+    })
+    
+    # Filtered touchet params ----
+    
+    rve_params_2 <- shiny::reactive({
+      filter_data_bytime(params_2, 
+                         year_range = input$dateRange_2, 
+                         month_vals = input$monthRange_2) %>% 
+        # dplyr::left_join(bmps_byyear, by = "Year")
+        dplyr::full_join(bmps_byyear %>%
+                           dplyr::filter(
+                            Year >= input$dateRange_2[1] &  
+                              Year <= input$dateRange_2[2]
+                           ), 
+                         by = "Year")
     })
     
     # Filtered BMPs ----
@@ -418,8 +566,29 @@ run_app <- function(){
       
     })  
     
+    rve_year_bmps_2 <- shiny::reactive({
+      
+      bmps %>%
+        sf::st_drop_geometry() %>%
+        dplyr::mutate(Date=paste0(Year,"-05-04")
+        ) %>%
+        dplyr::filter(
+          lubridate::year(lubridate::date(Date)) >= input$dateRange_2[1] &  
+            lubridate::year(lubridate::date(Date)) <= input$dateRange_2[2]
+        ) 
+      
+    })  
+    
     bmps_year <- shiny::reactive({
       rve_params() %>%
+        dplyr::distinct(Year, No_BMPS) %>%
+        dplyr::mutate(No_BMPS = ifelse(is.na(No_BMPS), 0, No_BMPS),
+                      Year = as.double(Year))
+      
+    })
+    
+    bmps_year_2 <- shiny::reactive({
+      rve_params_2() %>%
         dplyr::distinct(Year, No_BMPS) %>%
         dplyr::mutate(No_BMPS = ifelse(is.na(No_BMPS), 0, No_BMPS),
                       Year = as.double(Year))
@@ -444,7 +613,7 @@ run_app <- function(){
       
     })
     
-    # Water Quality ----
+    # Tucannon Water Quality ----
     # Make reactive to save time when loading. Only loads when tab is clicked
     shiny::observeEvent(input$WQ_navset_tabs_id,
                         
@@ -452,16 +621,16 @@ run_app <- function(){
                           
                           iframeServer("iframe_usgs_flow",
                                        url = app_inputs$WQ$usgs_flow_path,
-                                       style = 'width:100vw;height:100vh;'
+                                       style = 'width:90vw;height:100vh;border: none;margin-left: auto;margin-right: auto;'
                           )
                           
                           iframeServer("iframe_wa_eco_flow",
                                        url = app_inputs$WQ$wa_eco_flow_path,
-                                       style = 'width:90vw;height:90vh;')
+                                       style = 'width:92vw;height:90vh;')
                           
                           iframeServer("iframe_wa_eco_discharge",
                                        url = app_inputs$WQ$wa_eco_discharge_path,
-                                       style = 'width:100vw;height:100vh;')
+                                       style = 'width:50vw;height:100vh;border: none;margin-left: auto;margin-right: auto;')
                           
                         } else if(input$WQ_navset_tabs_id == "Marengo DOE Gauge"){
                           
@@ -609,6 +778,105 @@ run_app <- function(){
                         }
                         
                         
+    )
+    
+    # Touchet Water Quality ----
+    shiny::observeEvent(input$WQ_navset_tabs_id_2,
+                        
+                        if(input$WQ_navset_tabs_id_2 == "Realtime Flows"){
+                          
+                          iframeServer("iframe_usgs_flow_2",
+                                       url = app_inputs$WQ2$usgs_flow_path,
+                                       style = 'width:90vw;height:100vh;border: none;margin-left: auto;margin-right: auto;'
+                          )
+                          
+                          iframeServer("iframe_wa_eco_flow_2",
+                                       url = app_inputs$WQ$wa_eco_flow_path, # state wide so can duplicate here
+                                       style = 'width:92vw;height:90vh;')
+
+                          iframeServer("iframe_wa_eco_discharge_2_1",
+                                       url = app_inputs$WQ2$wa_eco_discharge_path1,
+                                       style = 'width:50vw;height:100vh;border: none;margin-left: auto;margin-right: auto;')
+                          
+                          iframeServer("iframe_wa_eco_discharge_2_2",
+                                       url = app_inputs$WQ2$wa_eco_discharge_path2,
+                                       style = 'width:50vw;height:100vh;border: none;margin-left: auto;margin-right: auto;')
+                          
+                          iframeServer("iframe_wa_eco_discharge_2_3",
+                                       url = app_inputs$WQ2$wa_eco_discharge_path3,
+                                       style = 'width:50vw;height:100vh;border: none;margin-left: auto;margin-right: auto;')
+                          
+                        }  else if(input$WQ_navset_tabs_id_2 == "Temperature"){
+                          
+                          temp_by_year <- shiny::reactive({
+                            filter_params(data = rve_params_2(),
+                                          param_vals = "Temperature, water",
+                                          group_vars = c("Param", "Date", "Year", "Month", "Units"),
+                                          arr_vars = c("Year", "Month"),
+                                          res_gt0 = TRUE) %>%
+                              dplyr::select(-Date) %>% 
+                              dplyr::mutate(Date = lubridate::ymd(as.character(Year), truncated = 4))
+                          })
+                          
+                          temp_by_year2 <- shiny::reactive({
+                            filter_params(data = rve_params_2(),
+                                          param_vals = "Temperature, water",
+                                          group_vars = c("Param", "Date", "Year", "Month", "Units"),
+                                          arr_vars = c("Year", "Month"),
+                                          res_gt0 = TRUE) %>%
+                              dplyr::select(-Date) %>% 
+                              dplyr::mutate(Date = Year,
+                                            Date = factor(Date, levels = c(min(.data$Year)):max(.data$Year))) %>% 
+                              tidyr::complete(Date, fill = list(Result = NA_real_)) %>% 
+                              dplyr::mutate(Date = as.numeric(as.character(Date)))
+                          })
+                          
+                          temp_av_year <- shiny::reactive({
+                            filter_params(data = temp_by_year(),
+                                          param_vals = "Temperature, water",
+                                          group_vars = c("Date", "Year"),
+                                          arr_vars = c("Year"),
+                                          round_dig = 2)
+                          })
+                          
+                          hc_lineServer("hc_line_temp_an_2",
+                                        data = temp_av_year, # only want to send the values, not the reactive version
+                                        obs_name = "deg C",
+                                        y_lbl = "Temperature deg C",
+                                        x_lbl = "Year",
+                                        title = "Annual Average")
+                          
+                          hc_boxServer("hc_box_temp_2",
+                                       data = temp_by_year2, # only want to send the values, not the reactive version
+                                       x_var = "Date",
+                                       y_var = "Result",
+                                       x_lbl = "Year",
+                                       y_lbl = "Temperature deg C",
+                                       obs_name = "deg C",
+                                       bmp_lbl = "BMPs/Year",
+                                       title = "Quartiles",
+                                       bmp_dat = bmps_year_2)
+                          
+                          hc_ts_wBMPsServer("hc_ts_temp_2",
+                                            data = temp_by_year, # only want to send the values, not the reactive version
+                                            param = "Temperature, water",
+                                            obs_name = "deg C",
+                                            y_lbl = "Temperature deg C",
+                                            x_lbl = "Year",
+                                            bmp_lbl = "BMPs/Year",
+                                            title = "Annual Average (Scatter)",
+                                            bmp_dat = bmps_year_2)
+                        } else if(input$WQ_navset_tabs_id_2 == "Dissolved Oxygen"){
+                          hc_ts_wBMPsServer("hc_ts_do_2",
+                                            data = rve_params_2, # only want to send the values, not the reactive version
+                                            param = "Dissolved Oxygen",
+                                            obs_name = "Dissolved Oxygen mg/L",
+                                            y_lbl = "Dissolved Oxygen mg/L",
+                                            bmp_lbl = "BMPs/Year",
+                                            title = "Touchet River", # TODO update if only selecting one location
+                                            bmp_dat = bmps_year_2,
+                                            href = c("TMDL" = 8))
+                        }
     )
     
     # Watershed Map ----
@@ -912,7 +1180,8 @@ run_app <- function(){
             title = "Wetlands",
             opacity = 1
           ) %>%
-          leaflet::hideGroup(c("Waterways", "WQStation", "BMP", "wetlands"))
+          leaflet::hideGroup(c("Waterways", "WQStation", "BMP", "wetlands")) %>% 
+          suppressWarnings()
         
         
         map <- map %>%
@@ -992,13 +1261,17 @@ run_app <- function(){
     # Make reactive to save time when loading. Only loads when tab is clicked
     shiny::observeEvent(input$navset_tabs_river_rest,
                         
-                        if(input$navset_tabs_river_rest == "Restoration"){
+                        if(input$navset_tabs_river_rest == "Tucannon Restoration"){
                           iframeServer("iframe_rest",
                                        url = app_inputs$RR$river_rest_arcgis,
                                        style = 'width:90vw;height:90vh;')
-                        } else if(input$navset_tabs_river_rest == "Geomorphic Assessment"){
+                        } else if(input$navset_tabs_river_rest == "Tucannon Geomorphic Assessment"){
                           iframeServer("iframe_rest_geo",
                                        url = app_inputs$RR$river_rest_geo_arcgis,
+                                       style = 'width:90vw;height:90vh;')
+                        } else if(input$navset_tabs_river_rest == "Touchet Geomorphic Assessment"){
+                          iframeServer("iframe_rest_geo_2",
+                                       url = app_inputs$RR$river_rest_geo_arcgis2,
                                        style = 'width:90vw;height:90vh;')
                         }
     )
@@ -1194,6 +1467,7 @@ run_app <- function(){
     })
    
     shiny::observeEvent(input$landcover_report, {
+      shinybusy::show_modal_spinner(text = "Generating your report. Please wait...", color = "#5E9300")
 
       # Temporary file for the report
       tmp_dir <- tempdir()
@@ -1222,12 +1496,12 @@ run_app <- function(){
                    "Geologic Hazard" = ag_geo_haz,
                    "Wildlife" = ag_conservation_areas
       )
-      
+
       quarto::quarto_render(
         input = "landcover.qmd",
         output_file = out_path,
         execute_params = list(
-          watershed = app_inputs$region,
+          watershed = app_inputs$county_term,
           county_acres = county,
           crit = input$critpick,
           corrected = input$corrected_checkbox,
@@ -1242,11 +1516,13 @@ run_app <- function(){
       
       file.path(tmp_dir, out_path) |> report_path()
       
+      shinybusy::remove_modal_spinner()
+      
     })
     
     output$landcover_download <- shiny::renderUI({
       shiny::req(report_path())
-      shiny::downloadButton("download_report", "Download Report")
+      shiny::downloadButton("download_report", "Download Report", class = "btn btn-primary")
     })
     
     output$download_report <- shiny::downloadHandler(

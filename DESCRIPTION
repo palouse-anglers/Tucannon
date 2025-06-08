@@ -30,6 +30,7 @@ Imports:
     readr,
     sf,
     shiny,
+    shinybusy,
     shinycssloaders,
     shinydashboard,
     shinyWidgets,
