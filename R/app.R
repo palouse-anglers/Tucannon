@@ -1,4 +1,4 @@
-run_app <- function(){
+
   
   # Set NULL to fix check
   Year <- NULL
@@ -1755,6 +1755,6 @@ run_app <- function(){
   
   shiny::shinyApp(app_ui, app_server)
   
-}
+
 
 
