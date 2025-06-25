@@ -4303,6 +4303,9 @@
     ".Rbuildignore": {
       "checksum": "98a9381cc95e7eccf41026d86eaf0387"
     },
+    "app.R": {
+      "checksum": "60f50e85c72f26724c01ffa05b742134"
+    },
     "data-raw/app_input.R": {
       "checksum": "247a93073a77035ec0cb9851afc1d2bf"
     },
@@ -4866,9 +4869,6 @@
     },
     "NAMESPACE": {
       "checksum": "6f35b49b3a34a59ac8c7a688ff681ba1"
-    },
-    "R/app.R": {
-      "checksum": "4ee9486449472bc981a85d24d820cd3c"
     },
     "R/filter_data.R": {
       "checksum": "1b7e238d87a831a5317535bf81f9f5a6"
