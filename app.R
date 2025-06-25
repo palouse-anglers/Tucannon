@@ -1569,6 +1569,8 @@ library(dplyr)
     shiny::observeEvent(input$landcover_report, {
       shinybusy::show_modal_spinner(text = "Generating your report. Please wait...", color = "#5E9300")
 
+      list.files(".")
+      
       # Temporary file for the report
       tmp_dir <- tempdir()
       old_wd <- getwd()  # Save current working dir
