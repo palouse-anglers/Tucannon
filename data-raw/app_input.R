@@ -618,7 +618,7 @@ county <- 558037
 # TODO update this
 usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_crit_aquifer, ag_frqflood, 
                   ag_wetlands, 
-                  LU_change, 
+                  LU_change, LU_2024,
                   ag_conservation_areas_usda, ag_geo_haz_usda, ag_crit_aquifer_usda, ag_frqflood_usda, ag_wetlands_usda,
                   huc_sum,
                   huc, stations, huc_combo, 
