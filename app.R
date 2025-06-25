@@ -1569,7 +1569,7 @@ library(dplyr)
     shiny::observeEvent(input$landcover_report, {
       shinybusy::show_modal_spinner(text = "Generating your report. Please wait...", color = "#5E9300")
 
-      list.files(".")
+      message(paste(list.files(".", recursive = TRUE), collapse = ", "))
       
       # Temporary file for the report
       tmp_dir <- tempdir()
