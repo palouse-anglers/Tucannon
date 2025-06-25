@@ -1608,7 +1608,7 @@ library(dplyr)
       
       out_path <- "landcover.pdf"
       
-      message(paste(list.files(".", recursive = TRUE), collapse = ", "))
+      message(paste(list.files(".", pattern = "\\.typ",recursive = TRUE), collapse = ", "))
       message("Working directory: ", getwd())
       message("QMD file exists: ", file.exists("landcover.qmd"))
       message("QMD file content (first few lines):")
