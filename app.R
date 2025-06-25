@@ -1576,8 +1576,14 @@ library(dplyr)
       on.exit(setwd(old_wd))  
       setwd(tmp_dir)
       
-      message("Path is:", paste0(system.file("reports", "lc-typst-show.typ", package = "Tucannon", mustWork = TRUE)))
-      
+      package_path <- find.package("Tucannon")
+      message("Tucannon is installed at: ", package_path)
+      list.files(
+        path = system.file("reports", package = "Tucannon"),
+        recursive = TRUE,
+        full.names = TRUE
+      )
+
       # move lc-typst-template.typ and lc-typst-show.typ to temp dir
       file.copy(system.file("reports", "lc-typst-show.typ", package = "Tucannon"), 
                 file.path(tmp_dir, "typst-show.typ"),
@@ -1592,11 +1598,7 @@ library(dplyr)
       
       out_path <- "landcover.pdf"
       
-      message("Working directory: ", getwd())
-      fs::dir_tree()
-      message("QMD file exists: ", file.exists("landcover.qmd"))
-      message("QMD file content (first few lines):")
-      print(readLines("landcover.qmd", n = 5))
+      
       
       df <- switch(input$critpick,
                    "Aquifers" = ag_crit_aquifer,
