@@ -19,12 +19,15 @@ mod_watershedServer <- function(id, selected_choices, filtered_huc, rve_bmps) {
     output$cards_ui <- shiny::renderUI({
       shiny::req(filtered_huc(), length(selected_choices() > 0))
       
-      total_huc_acrew <- sum(filtered_huc()$HUC_Acres, na.rm = TRUE)
+      total_huc_acrew <- sum(filtered_huc() %>% 
+                               dplyr::distinct(Name, HUC_Acres) %>% 
+                               dplyr::pull(HUC_Acres), na.rm = TRUE)
       
-      selected_tbl <- watershed_tbl %>%
-        dplyr::filter(choice %in% selected_choices())
+      # selected_tbl <- watershed_tbl %>%
+      #   dplyr::filter(choice %in% selected_choices())
       
-      choice_list <- unique(selected_tbl$choice)
+      # choice_list <- unique(selected_tbl$choice)
+      choice_list <- selected_choices()
       
       cards <- list()
       
@@ -61,23 +64,39 @@ mod_watershedServer <- function(id, selected_choices, filtered_huc, rve_bmps) {
       
       ## 2. Add regular cards
       other_cards <- lapply(choice_list, function(choice) {
-        df <- selected_tbl %>% dplyr::filter(choice == !!choice)
+        df <- filtered_huc() %>% dplyr::filter(source == choice)
         
-        table_data <- purrr::map2_dfr(
-          as.character(df$column), as.character(df$label),
-          ~ data.frame(
-            Placeholder = .y,
-            Acres = glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]], na.rm = TRUE), 0))}"),
-            Percent = glue::glue("% {round(sum(filtered_huc()[[.x]], na.rm = TRUE) / total_huc_acrew * 100, 2)}")
-          )
-        ) 
+        if(all(is.na(unique(df$group)))){
+          table_data <- df %>% 
+            dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
+                      Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
+                      Acres = glue::glue("{scales::comma(round(Acres, 2))}"))
+        } else {
+          table_data <- df %>% 
+            dplyr::group_by(group) %>% 
+            dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
+                      Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
+                      Acres = glue::glue("{scales::comma(round(Acres, 2))}")) %>% 
+            dplyr::ungroup() %>% 
+            dplyr::rename(Category = group)
+            
+        }
+        
+        # table_data <- purrr::map2_dfr(
+        #   as.character(df$column), as.character(df$label),
+        #   ~ data.frame(
+        #     Placeholder = .y,
+        #     Acres = glue::glue("{scales::comma(round(sum(filtered_huc()[[.x]], na.rm = TRUE), 0))}"),
+        #     Percent = glue::glue("% {round(sum(filtered_huc()[[.x]], na.rm = TRUE) / total_huc_acrew * 100, 2)}")
+        #   )
+        # ) 
         
         # Conditionally name or omit the first column
-        if (nrow(df) > 1) {
-          table_data <- stats::setNames(table_data, c(unique(df$type), "Acres", "Percent"))
-        } else {
-          table_data <- stats::setNames(table_data[, -1, drop = FALSE], c("Acres", "Percent"))
-        }
+        # if (nrow(table_data) > 1) {
+        #   table_data <- stats::setNames(table_data, c(unique(df$source), "Acres", "Percent"))
+        # } else {
+        #   table_data <- stats::setNames(table_data, c("Acres", "Percent"))
+        # }
         
         max_rows <- nrow(table_data)
         body_height <- if (max_rows <= 3) "300px" else "auto"

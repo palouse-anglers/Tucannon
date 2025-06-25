@@ -284,6 +284,26 @@ run_app <- function(){
                                                                              )
                                                                            )  
                                                           ),
+                                                          bslib::nav_panel(title = paste0(app_inputs$gauge_location2," DOE Gauge"),
+                                                                           bslib::layout_column_wrap(
+                                                                             bslib::card(
+                                                                               full_screen = TRUE,
+                                                                               style = "resize:both;",
+                                                                               bslib::card_header("Temperature"),
+                                                                               hc_lineUI("hc_line_temp_2") %>%
+                                                                                 shinycssloaders::withSpinner(
+                                                                                   image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif")
+                                                                             ),
+                                                                             bslib::card( 
+                                                                               full_screen = TRUE,
+                                                                               style = "resize:both;",
+                                                                               bslib::card_header("Stage Height"),
+                                                                               hc_lineUI("hc_line_stage_2") %>%
+                                                                                 shinycssloaders::withSpinner(
+                                                                                   image = "https://raw.githubusercontent.com/daattali/shinycssloaders/master/inst/img/custom.gif")
+                                                                             )
+                                                                           )
+                                                          ),
                                                           bslib::nav_panel(title = "Temperature",
                                                                            # First row: 3 cards
                                                                            bslib::layout_column_wrap(
@@ -398,17 +418,8 @@ run_app <- function(){
                                                                                              inputId = "selectInput",
                                                                                              label = "Category",
                                                                                              choices = c(
-                                                                                               "Wildlife",
-                                                                                               "Aquifers",
-                                                                                               "Erosion",
-                                                                                               "Change Detection",
                                                                                                "BMPs",
-                                                                                               "Frequently Flooded Areas",
-                                                                                               "SRP",
-                                                                                               "Wetlands",
-                                                                                               "Geologically Hazardous Areas",
-                                                                                               "Landuse 2011",
-                                                                                               "Landuse 2019"
+                                                                                               unique(huc_combo$source)
                                                                                              )
                                                                                            )
                                                                                            
@@ -456,8 +467,8 @@ run_app <- function(){
                                                              bslib::card_footer(text_boxes$river_rest_ftn)
                                                            ))
                                         )),
-                       # Landcover ----
-                       bslib::nav_panel(title = "Landcover",
+                       # Private Ag Land Use ----
+                       bslib::nav_panel(title = "Private Ag Land Use",
                                         shiny::fluidRow(
                                           shiny::column(width = 4,
                                                         style = "padding-right: 50px; padding-bottom: 10px;",
@@ -489,9 +500,33 @@ run_app <- function(){
                                         
                                         
                        ),
-                       # Guidance ----
-                       bslib::nav_panel(title = "Guidance",
-                                        DT::dataTableOutput("huclabels")
+                       # USDA Land Use ----
+                       bslib::nav_panel(title = "USDA Land Use",
+                                        shiny::fluidRow(
+                                          shiny::column(width = 4,
+                                                        style = "padding-right: 50px; padding-bottom: 10px;",
+                                                        # TODO Build from data
+                                                        shinyWidgets::pickerInput(width = '200px',
+                                                                                  # build buttons for collective selection
+                                                                                  multiple = FALSE,
+                                                                                  inputId = "critpick_usda",
+                                                                                  label = "Critical Area",
+                                                                                  choices = c("Wetlands","Wildlife","Geologic Hazard","Aquifers"),
+                                                                                  selected = "Wetlands"
+                                                        )
+                                          ),
+                                          shiny::column(width = 4,
+                                                        shinydashboard::valueBoxOutput("huc_acres")
+                                          ),
+                                          #column(1),
+                                          shiny::column(width = 4,
+                                                        shinydashboard::valueBoxOutput("lc_vbox_usda")
+                                          )),
+                                        shiny::uiOutput("lc_tfl_usda"),
+                                        shiny::hr(),
+                                        # )
+
+
                        ),
                        # Nav additions ----
                        bslib::nav_spacer(),
@@ -596,7 +631,7 @@ run_app <- function(){
     })
     
     # Stations ----
-    
+    # Marengo
     rve_station_water <- shiny::reactive({
       
       filter_data_bytime(station_water, 
@@ -610,6 +645,23 @@ run_app <- function(){
       filter_data_bytime(station_stage, 
                          year_range = input$dateRange, 
                          month_vals = input$monthRange)
+      
+    })
+    
+    # Bolles
+    rve_station_water_2 <- shiny::reactive({
+      
+      filter_data_bytime(station_water_2, 
+                         year_range = input$dateRange_2, 
+                         month_vals = input$monthRange_2)
+      
+    })
+    
+    rve_station_stage_2 <- shiny::reactive({
+      
+      filter_data_bytime(station_stage_2, 
+                         year_range = input$dateRange_2, 
+                         month_vals = input$monthRange_2)
       
     })
     
@@ -806,7 +858,21 @@ run_app <- function(){
                                        url = app_inputs$WQ2$wa_eco_discharge_path3,
                                        style = 'width:50vw;height:100vh;border: none;margin-left: auto;margin-right: auto;')
                           
-                        }  else if(input$WQ_navset_tabs_id_2 == "Temperature"){
+                        }  else if(input$WQ_navset_tabs_id_2 == "Bolles DOE Gauge"){
+                          
+                          hc_lineServer("hc_line_temp_2",
+                                        data = rve_station_water_2, # only want to send the values, not the reactive version
+                                        obs_name = "deg C",
+                                        y_lbl = "Temperature deg C",
+                                        title = "32B100-Bolles Temperature")
+                          
+                          hc_lineServer("hc_line_stage_2",
+                                        data = rve_station_stage_2, # only want to send the values, not the reactive version
+                                        obs_name = "(ft)",
+                                        y_lbl = "Stage Ht. (ft)",
+                                        title = "32B100-Bolles Stage Ht. (ft)")
+                          
+                        } else if(input$WQ_navset_tabs_id_2 == "Temperature"){
                           
                           temp_by_year <- shiny::reactive({
                             filter_params(data = rve_params_2(),
@@ -875,7 +941,7 @@ run_app <- function(){
                                             bmp_lbl = "BMPs/Year",
                                             title = "Touchet River", # TODO update if only selecting one location
                                             bmp_dat = bmps_year_2,
-                                            href = c("TMDL" = 8))
+                                            href = c("TMDL" = 9.5))
                         }
     )
     
@@ -888,6 +954,13 @@ run_app <- function(){
       filtered_huc <- shiny::reactive({
         
         huc %>%
+          dplyr::filter(Name %in% input$watersheds)
+        
+      })
+      
+      filtered_huc_combo <- shiny::reactive({
+        
+        huc_combo %>%
           dplyr::filter(Name %in% input$watersheds)
         
       })
@@ -905,18 +978,15 @@ run_app <- function(){
       
       
       output$selectedHUC <- DT::renderDataTable({
-        # Check if clicked_HUC is NULL (no shape clicked yet)
-        
-        
-        
+
         shiny::req(nrow(filtered_huc())>=1)
         
         DT::datatable(height = 900,
                       rownames = FALSE,
                       data= filtered_huc() %>% 
                         sf::st_drop_geometry() %>%
-                        dplyr::select(-c(X, fid_1, TNMID, VPUID, OID_))%>%
-                        dplyr::select(Name, HUC12, dplyr::everything()),
+                        dplyr::select(Name, HUC12,HUC_Acres) %>% 
+                        dplyr::mutate(HUC_Acres = round(HUC_Acres, 0)),
                       extensions = 'Buttons',
                       filter = 'top',
                       options = list(
@@ -1034,6 +1104,13 @@ run_app <- function(){
                                                   "#000000"),
                                      domain = wetlands$WETLAND_TY)
         
+        # pal3 <- leaflet::colorFactor(palette = c( "#00FF00",
+        #                                           "#0000FF",
+        #                                           "#FFA500",
+        #                                           "#FFFF00",
+        #                                           "#808080"),
+        #                              domain = geo_hazard$frphrtd)
+        
         map <- leaflet::leafletProxy("leafmap") %>%
           leaflet::clearMarkers() %>%
           leaflet::clearControls() %>%
@@ -1053,6 +1130,16 @@ run_app <- function(){
                                                     pal2(WETLAND_TY)),
             popup = ~ leafpop::popupTable(wetlands)
           ) %>%
+          # leaflet::addPolygons(
+          #   data = geo_hazard,
+          #   group = "geo_hazard",
+          #   label = ~ round(Acrs_n_, 0),
+          #   fillColor =  ~ pal3(frphrtd),
+          #   color =  ~ pal3(frphrtd),
+          #   highlight = leaflet::highlightOptions(weight = 3, color = ~
+          #                                           pal3(frphrtd)),
+          #   popup = ~ leafpop::popupTable(geo_hazard)
+          # ) %>%
           leaflet::addPolygons(
             data = huc,
             group = "watersheds",
@@ -1103,6 +1190,12 @@ run_app <- function(){
           leaflet::addMarkers(
             data = stations,
             group = "WQStation",
+            label = stations$Name,
+            labelOptions = leaflet::labelOptions(
+              style = list("font-weight" = "normal", padding = "3px 8px"),
+              textsize = "14px",
+              direction = "auto"
+            ),
             options = leaflet::pathOptions(pane = "ames_points")
           ) %>%
           leaflet::addPolygons(
@@ -1155,7 +1248,8 @@ run_app <- function(){
           ) %>%
           leaflet.extras::addSearchGoogle() %>%
           leaflet::addLayersControl(
-            overlayGroups = c("Waterways", "BMP", "watersheds", "WQStation", "wetlands"),
+            overlayGroups = c("Waterways", "BMP", "watersheds", "WQStation", "wetlands"#, "geo_hazard"
+                              ),
             baseGroups = c("Topo", "Imagery", "Dark", "Street")
           ) %>%
           leaflet.extras::addFullscreenControl() %>%
@@ -1180,7 +1274,18 @@ run_app <- function(){
             title = "Wetlands",
             opacity = 1
           ) %>%
-          leaflet::hideGroup(c("Waterways", "WQStation", "BMP", "wetlands")) %>% 
+          # leaflet::addLegend(
+          #   layerId = "geo_hazard_layer",
+          #   pal = pal3,
+          #   group = "geo_hazard",
+          #   values = unique(geo_hazard$frphrtd),
+          #   labels = unique(geo_hazard$frphrtd),
+          #   "bottomright",
+          #   title = "geo_hazard",
+          #   opacity = 1
+          # ) %>%
+          leaflet::hideGroup(c("Waterways", "WQStation", "BMP", "wetlands"#, "geo_hazard"
+                               )) %>% 
           suppressWarnings()
         
         
@@ -1195,9 +1300,9 @@ run_app <- function(){
         bslib::value_box(
           title = "HUC Acres",
           value = scales::comma(round(sum(filtered_huc()$HUC_Acres), digits = 0)),
-          shiny::p(glue::glue("{length(unique(filtered_huc()$Name))} watersheds selected")),
+          shiny::p(glue::glue("{length(unique(filtered_huc()$Name))} HUCs selected")),
           shiny::p(app_inputs$WS$county_huc),
-          shiny::p(paste0(app_inputs$region, " Watershed")),
+          shiny::p(paste0(app_inputs$region, " & ", app_inputs$region2)),
           full_screen = TRUE,
           theme = "success"
         )
@@ -1228,7 +1333,7 @@ run_app <- function(){
         
         
         bslib::value_box(fill = TRUE,
-                  title = paste0(app_inputs$region, " Watershed BMPs"),
+                  title = paste0(app_inputs$region, " & ", app_inputs$region2, " BMPs"),
                   value = sum(total_bmps$n[!is.na(total_bmps$HUC12)]),
                   showcase = shiny::icon("hammer"),
                   theme = "primary"
@@ -1240,7 +1345,7 @@ run_app <- function(){
       
       mod_watershedServer("watershed_tables",
                           selected_choices = selected_choicesrve,
-                          filtered_huc = filtered_huc,
+                          filtered_huc = filtered_huc_combo,
                           rve_bmps = rve_bmps)
       
       
@@ -1322,15 +1427,8 @@ run_app <- function(){
       
     })
     
-    # HUC Labels -----------------------------------------------------------
-    
-    output$huclabels <- DT::renderDT({
-      
-      DT::datatable(huc_labels)
-      
-    })
-    
-    # Landcover ----
+
+    # Private Ag Land Use ----
     private_ag_2019rve <- shiny::reactiveValues(value = private_ag_2019)
 
     shiny::observeEvent(input$corrected_checkbox, {
@@ -1426,6 +1524,7 @@ run_app <- function(){
                                
                                
                              }} %>%
+        highcharter::hc_xAxis(categories = sort(unique(df$`Primary Land Use`))) %>% 
         highcharter::hc_exporting(
           enabled = TRUE, 
           allowHTML = TRUE  
@@ -1535,7 +1634,121 @@ run_app <- function(){
       }
     )
     
+    # USDA Land Use ----
+   huc_acresrve <- shiny::reactiveValues(value = huc_sum)
     
+    
+    output$huc_acres <- shinydashboard::renderValueBox({
+      
+      shinydashboard::valueBox(
+        "USDA HUC12 Acres",
+        scales::comma(huc_acresrve$value),
+        icon = shiny::icon("map")
+      )
+      
+    })
+    
+    output$lc_vbox_usda <- shinydashboard::renderValueBox({
+      
+      df <- switch(input$critpick_usda,
+                   "Aquifers" = ag_crit_aquifer_usda,
+                   "Wetlands" = ag_wetlands_usda,
+                   "Geologic Hazard" = ag_geo_haz_usda,
+                   "Wildlife" = ag_conservation_areas_usda
+      )
+      
+      
+      total_ac <- sum(df$Acres)
+      acre_percent <- round((total_ac/huc_acresrve$value) * 100, digits = 2)
+
+      
+      bslib::value_box(
+        title = input$critpick_usda,
+        value = scales::comma(round(total_ac, digits = 3)),
+        shiny::p(glue::glue("{acre_percent}% across HUC12")),
+        full_screen = TRUE,
+        theme = "success"
+      )
+      
+      
+    })
+    
+    output$lc_tfl_usda <-  shiny::renderUI({
+      
+      
+      df <- switch(input$critpick_usda,
+                   "Aquifers" = ag_crit_aquifer_usda,
+                   "Wetlands" = ag_wetlands_usda,
+                   "Geologic Hazard" = ag_geo_haz_usda,
+                   "Wildlife" = ag_conservation_areas_usda
+      )
+      
+      # df <- df %>% dplyr::select(-V1)
+      
+      if(input$critpick_usda == "Geologic Hazard"){
+        df_sum <- df %>% 
+          dplyr::group_by(`Primary Land Use`)%>%
+          dplyr::summarise(Acres= sum(Acres)) %>% 
+          dplyr::ungroup()
+      } else {
+        df_sum <- df
+      }
+      
+      total_ac <- sum(df_sum$Acres)
+      acre_percent <- round((total_ac/huc_acresrve$value) * 100, digits = 2)
+
+      group_var <- switch(input$critpick_usda,
+                          "Aquifers" = "Aquifer",
+                          "Wetlands" = "Wetland Type",
+                          "Geologic Hazard" = NULL,
+                          "Wildlife" = "Species/Habitat"
+      )
+      
+      plot <- df_sum %>% 
+        {if(input$critpick_usda == "Geologic Hazard")
+        {highcharter::hchart(., 
+                             "column", 
+                             highcharter::hcaes(x = `Primary Land Use`, y = Acres), 
+                             stacking = "normal",
+                             tooltip = list(
+                               headerFormat = "<span style='font-size: 10px'>{point.key}</span><br/>",
+                               pointFormat = glue::glue("<b>{{point.y}}</b>")
+                             ))} else {
+                               {highcharter::hchart(., 
+                                                    "column", 
+                                                    highcharter::hcaes(x = `Primary Land Use`, y = Acres, group = !!rlang::sym(group_var)), 
+                                                    stacking = "normal")}
+                               
+                               
+                             }} %>%
+        highcharter::hc_xAxis(categories = unique(LU_2024$crop_name_grp)) %>% 
+        highcharter::hc_exporting(
+          enabled = TRUE, 
+          allowHTML = TRUE  
+        )
+      
+      table <- DT::datatable(rownames = FALSE,
+                             data= df,
+                             extensions = 'Buttons',
+                             filter = 'top',
+                             options = list(
+                               lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
+                               dom = 'lfrtipB',
+                               buttons = c('copy', 'csv', 'excel')
+                             )) 
+      
+      bslib::layout_column_wrap(
+        bslib::card(
+          bslib::card_header(paste0("Percent of HUC12: ", acre_percent, "%")), 
+          plot, 
+          full_screen = TRUE),
+        bslib::card(
+          bslib::card_header(paste0("Acres: ", scales::comma(total_ac))), 
+          table, 
+          full_screen = TRUE)
+      )
+      
+    })
     
   }
   
