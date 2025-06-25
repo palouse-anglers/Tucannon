@@ -1590,6 +1590,11 @@ library(dplyr)
       
       out_path <- "landcover.pdf"
       
+      message("Working directory: ", getwd())
+      message("QMD file exists: ", file.exists("landcover.qmd"))
+      message("QMD file content (first few lines):")
+      print(readLines("landcover.qmd", n = 5))
+      
       df <- switch(input$critpick,
                    "Aquifers" = ag_crit_aquifer,
                    "Wetlands" = ag_wetlands,
