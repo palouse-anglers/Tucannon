@@ -1590,6 +1590,11 @@ library(dplyr)
       # file.copy(system.file("reports", "landcover.qmd", package = "Tucannon"), 
       #           "landcover.qmd",
       #           overwrite = TRUE)
+      
+      message("Files exist?: ", file.exists("inst/reports/lc-typst-show.typ"))
+      message("Files exist?: ", file.exists("inst/reports/lc-typst-template.typ"))
+      message("Files exist?: ", file.exists("inst/reports/landcover.qmd"))
+      
       file.copy("inst/reports/lc-typst-show.typ", 
                 file.path(tmp_dir, "typst-show.typ"),
                 overwrite = TRUE)
@@ -1603,6 +1608,7 @@ library(dplyr)
       
       out_path <- "landcover.pdf"
       
+      message(paste(list.files(".", recursive = TRUE), collapse = ", "))
       message("Working directory: ", getwd())
       message("QMD file exists: ", file.exists("landcover.qmd"))
       message("QMD file content (first few lines):")
