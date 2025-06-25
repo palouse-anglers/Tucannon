@@ -1576,7 +1576,7 @@ library(dplyr)
       old_wd <- getwd()  # Save current working dir
       
       on.exit(setwd(old_wd))  
-      setwd(tmp_dir)
+      # setwd(tmp_dir)
       
       
       # move lc-typst-template.typ and lc-typst-show.typ to temp dir
@@ -1603,8 +1603,10 @@ library(dplyr)
                 overwrite = TRUE)
       # Copy the QMD file into temp dir and use it as the input
       file.copy("inst/reports/landcover.qmd", 
-                "landcover.qmd",
+                file.path(tmp_dir, "landcover.qmd"),
                 overwrite = TRUE)
+      
+      setwd(tmp_dir)
       
       out_path <- "landcover.pdf"
       
