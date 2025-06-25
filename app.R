@@ -1576,29 +1576,35 @@ library(dplyr)
       on.exit(setwd(old_wd))  
       setwd(tmp_dir)
       
-      package_path <- find.package("Tucannon")
-      message("Tucannon is installed at: ", package_path)
-      list.files(
-        path = system.file("reports", package = "Tucannon"),
-        recursive = TRUE,
-        full.names = TRUE
-      )
-
+      
       # move lc-typst-template.typ and lc-typst-show.typ to temp dir
-      file.copy(system.file("reports", "lc-typst-show.typ", package = "Tucannon"), 
+      # file.copy(system.file("reports", "lc-typst-show.typ", package = "Tucannon"), 
+      #           file.path(tmp_dir, "typst-show.typ"),
+      #           overwrite = TRUE)
+      # file.copy(system.file("reports", "lc-typst-template.typ", package = "Tucannon"), 
+      #           file.path(tmp_dir, "typst-template.typ"),
+      #           overwrite = TRUE)
+      # # Copy the QMD file into temp dir and use it as the input
+      # file.copy(system.file("reports", "landcover.qmd", package = "Tucannon"), 
+      #           "landcover.qmd",
+      #           overwrite = TRUE)
+      file.copy("inst/reports/lc-typst-show.typ", 
                 file.path(tmp_dir, "typst-show.typ"),
                 overwrite = TRUE)
-      file.copy(system.file("reports", "lc-typst-template.typ", package = "Tucannon"), 
+      file.copy("inst/reports/lc-typst-template.typ", 
                 file.path(tmp_dir, "typst-template.typ"),
                 overwrite = TRUE)
       # Copy the QMD file into temp dir and use it as the input
-      file.copy(system.file("reports", "landcover.qmd", package = "Tucannon"), 
+      file.copy("inst/reports/landcover.qmd", 
                 "landcover.qmd",
                 overwrite = TRUE)
       
       out_path <- "landcover.pdf"
       
-      
+      message("Working directory: ", getwd())
+      message("QMD file exists: ", file.exists("landcover.qmd"))
+      message("QMD file content (first few lines):")
+      print(readLines("landcover.qmd", n = 5))
       
       df <- switch(input$critpick,
                    "Aquifers" = ag_crit_aquifer,
