@@ -1591,9 +1591,6 @@ library(dplyr)
       #           "landcover.qmd",
       #           overwrite = TRUE)
       
-      message("Files exist?: ", file.exists("inst/reports/lc-typst-show.typ"))
-      message("Files exist?: ", file.exists("inst/reports/lc-typst-template.typ"))
-      message("Files exist?: ", file.exists("inst/reports/landcover.qmd"))
       
       file.copy("inst/reports/lc-typst-show.typ", 
                 file.path(tmp_dir, "typst-show.typ"),
@@ -1610,11 +1607,6 @@ library(dplyr)
       
       out_path <- "landcover.pdf"
       
-      message(paste(list.files(".", pattern = "\\.typ",recursive = TRUE), collapse = ", "))
-      message("Working directory: ", getwd())
-      message("QMD file exists: ", file.exists("landcover.qmd"))
-      message("QMD file content (first few lines):")
-      print(readLines("landcover.qmd", n = 5))
       
       df <- switch(input$critpick,
                    "Aquifers" = ag_crit_aquifer,
