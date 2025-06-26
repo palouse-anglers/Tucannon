@@ -31,7 +31,9 @@
     footer: align(
       grid(
         columns: (40%, 60%),
-        align(horizon, text(fill: rgb("654e18"), size: 12pt, counter(page).display("1")))
+        align(horizon, context(
+        text(fill: rgb("654e18"), size: 12pt, counter(page).display("1"))
+        ))
       )
     )
   )
