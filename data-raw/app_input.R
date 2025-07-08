@@ -190,14 +190,15 @@ ag_geo_haz <- data.table::fread("inst/huc_merge/ag_geo_haz.csv") %>%
   dplyr::rename(`Primary Land Use` = AQ1,
                 `Private Acres` = Ag_Acres)
 
-ag_geo_haz_cc_raw <- data.table::fread("inst/cc_huc12/columbia_geologic_hazard_huc12.csv") %>% dplyr::select(-V1)
+ag_geo_haz_cc_raw <- data.table::fread("inst/cc_huc12/columbia_geologic_hazard_huc12.csv") %>% dplyr::select(-V1) %>% 
+  dplyr::mutate(forpehrtdc = dplyr::if_else(forpehrtdc == "", "Unknown", forpehrtdc))
 ag_geo_haz_usda <- ag_geo_haz_cc_raw %>% 
   dplyr::left_join(LU_2024_primary, by = "huc12") %>% 
   dplyr::group_by(crop_name_grp, forpehrtdc) %>% 
   dplyr::summarise(acres = sum(acres)) %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate(crop_name_grp = factor(crop_name_grp, levels = c("Wetlands/Water", "Cropland/Pasture", "Forest/Shrubland", "Developed/Barren")),
-                forpehrtdc = dplyr::if_else(forpehrtdc == "", "Unknown", forpehrtdc),
+                # forpehrtdc = dplyr::if_else(forpehrtdc == "", "Unknown", forpehrtdc),
                 forpehrtdc = factor(forpehrtdc)) %>% 
   tidyr::complete(crop_name_grp, forpehrtdc, fill = list(acres = 0)) %>% 
   dplyr::mutate(crop_name_grp = as.character(crop_name_grp),
@@ -269,6 +270,24 @@ ag_wetlands_usda <- ag_wetlands_cc_raw %>%
                 `Wetland Type` = WETLAND_TY,
                 `Acres` = acres)
 
+srp_cc_raw <- data.table::fread("inst/cc_huc12/columbia_srp_huc12.csv") %>% select(-V1)
+forest_priority_cc_raw <- data.table::fread("inst/cc_huc12/columbia_forest_priority_huc12.csv") %>% select(-V1) %>% 
+  dplyr::mutate(Priority = factor(Priority, levels = c("Low", "Moderate","High"))) %>% 
+  dplyr::arrange(Priority) %>% 
+  dplyr::mutate(Priority = as.character(Priority))
+
+
+change_cc_raw <- data.table::fread("inst/cc_huc12/columbia_change_detect_2011_2017.csv") %>% 
+  tidyr::pivot_longer(-huc12) %>% 
+  dplyr::mutate(name = dplyr::case_when(name == "TreeDecAc" ~ "Tree Loss",
+                          name == "SemiIncAc" ~ "Semi-Impervious Surface Increase",
+                          name == "TotCngAc" ~ "Total Change"),
+         name = factor(name, levels = c("Semi-Impervious Surface Increase", "Tree Loss", "Total Change"))) %>% 
+  dplyr::arrange(huc12, name) %>% 
+  dplyr::mutate(name = as.character(name)) %>% 
+  dplyr::rename(acres = value)
+
+
 # TODO Update data
 # huc <- sf::st_read("inst/huc_merge/HUC12_mod.shp", quiet = TRUE) %>%
 #   dplyr::select(HUC12) %>%
@@ -310,10 +329,25 @@ huc_combo <- bind_rows(
              huc12 = as.character(huc12)) %>% 
       dplyr::mutate(group = NA) %>% 
       dplyr::left_join(huc_reduce, by = "huc12"), 
+    srp_cc_raw %>% 
+      dplyr::mutate(source = "SRP",
+                    huc12 = as.character(huc12)) %>% 
+      dplyr::mutate(group = NA) %>% 
+      dplyr::left_join(huc_reduce, by = "huc12"), 
     ag_wetlands_cc_raw %>%
       dplyr::mutate(source = "Wetlands",
              huc12 = as.character(huc12)) %>% 
       dplyr::rename(group = WETLAND_TY) %>% 
+      dplyr::left_join(huc_reduce, by = "huc12"),
+    change_cc_raw %>%
+      dplyr::mutate(source = "Change Detection",
+                    huc12 = as.character(huc12)) %>% 
+      dplyr::rename(group = name) %>% 
+      dplyr::left_join(huc_reduce, by = "huc12"),
+    forest_priority_cc_raw %>%
+      dplyr::mutate(source = "Forest Priority",
+                    huc12 = as.character(huc12)) %>% 
+      dplyr::rename(group = Priority) %>% 
       dplyr::left_join(huc_reduce, by = "huc12"),
     LU_2011 %>% 
       dplyr::mutate(source = "USDA Primary Land Use 2011",

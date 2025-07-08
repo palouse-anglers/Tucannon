@@ -67,18 +67,37 @@ mod_watershedServer <- function(id, selected_choices, filtered_huc, rve_bmps) {
         df <- filtered_huc() %>% dplyr::filter(source == choice)
         
         if(all(is.na(unique(df$group)))){
-          table_data <- df %>% 
-            dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
-                      Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
-                      Acres = glue::glue("{scales::comma(round(Acres, 2))}"))
+          
+          if(all(is.na(df$acres))){
+            table_data <- df %>% 
+              dplyr::summarise(Count = sum(count, na.rm = TRUE))
+          } else {
+            table_data <- df %>% 
+              dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
+                               Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
+                               Acres = glue::glue("{scales::comma(round(Acres, 2))}"))
+          }
+          
+          
         } else {
-          table_data <- df %>% 
-            dplyr::group_by(group) %>% 
-            dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
-                      Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
-                      Acres = glue::glue("{scales::comma(round(Acres, 2))}")) %>% 
-            dplyr::ungroup() %>% 
-            dplyr::rename(Category = group)
+          if(all(is.na(df$acres))){
+            table_data <- df %>% 
+              dplyr::mutate(group = factor(group, levels = unique(df$group))) %>% 
+              dplyr::group_by(group) %>% 
+              dplyr::summarise(Count = sum(count, na.rm = TRUE)) %>% 
+              dplyr::ungroup() %>% 
+              dplyr::rename(Category = group)
+          } else {
+            table_data <- df %>% 
+              dplyr::mutate(group = factor(group, levels = unique(df$group))) %>% 
+              dplyr::group_by(group) %>% 
+              dplyr::summarise(Acres = sum(acres, na.rm = TRUE),
+                               Percent = glue::glue("{round((Acres/total_huc_acrew) * 100, 2)} %"),
+                               Acres = glue::glue("{scales::comma(round(Acres, 2))}")) %>% 
+              dplyr::ungroup() %>% 
+              dplyr::rename(Category = group)
+          }
+          
             
         }
         
