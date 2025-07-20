@@ -70,6 +70,8 @@ text_boxes <- list(
   
 )
 
+custom_legend <- paste(readLines("inst/usda/2011-2024_land_use_comp_legend.html"), collapse = "\n")
+
 # Data ----
 
 
@@ -151,7 +153,9 @@ LU_change <- dplyr::full_join(
     names_to = "year",
     names_prefix = "acres\\.",
     values_to = "acres"
-  )
+  ) %>% 
+  mutate(year = factor(year, levels = c("2011", "2024")))
+
 
 
 LU_2024_primary <- LU_2024 %>% 
@@ -650,7 +654,7 @@ private_ag_2019_adj <- 334546
 county <- 558037
 
 # TODO update this
-usethis::use_data(app_inputs, text_boxes, ag_conservation_areas, ag_geo_haz, ag_crit_aquifer, ag_frqflood, 
+usethis::use_data(app_inputs, text_boxes, custom_legend, ag_conservation_areas, ag_geo_haz, ag_crit_aquifer, ag_frqflood, 
                   ag_wetlands, 
                   LU_change, LU_2024,
                   ag_conservation_areas_usda, ag_geo_haz_usda, ag_crit_aquifer_usda, ag_frqflood_usda, ag_wetlands_usda,

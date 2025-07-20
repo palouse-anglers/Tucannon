@@ -525,7 +525,14 @@ library(dplyr)
                                           )),
                                         shiny::uiOutput("lc_tfl_usda"),
                                         shiny::hr(),
-                                        # )
+                                        shiny::tags$div(
+                                          class = "text-danger",
+                                          style = "margin-top: 1em; margin-bottom: 1em; display: flex; align-items: center;",
+                                          shiny::icon("info-circle", class = "me-2"),
+                                          shiny::tags$span(" The following content is independent of the data filters above.")
+                                        ),
+                                        shiny::uiOutput("landuse_yr_comp")
+
 
 
                        ),
@@ -1768,6 +1775,110 @@ library(dplyr)
       )
       
     })
+    
+    output$landuse_yr_comp <- renderUI({
+      bslib::layout_columns(
+        col_widths = c(12, 12),
+        bslib::card(
+          highcharter::highchartOutput("LU_change2011_2024"),
+          
+          full_screen = TRUE
+        ),
+        bslib::card(
+          leaflet::leafletOutput("usda_map", height = "1000px"),
+          full_screen = TRUE
+        )
+      )
+    })
+    
+    output$LU_change2011_2024 <- highcharter::renderHighchart({
+      highcharter::highchart() |>
+        highcharter::hc_chart(type = "line", inverted = FALSE) |>
+        highcharter::hc_title(text = "Land Use Change (2011 vs 2024)") |>
+        highcharter::hc_xAxis(
+          categories = levels(LU_change$year),
+          title = list(text = "Year")
+        ) |>
+        highcharter::hc_yAxis(
+          title = list(text = "Acres")
+        ) |>
+        highcharter::hc_plotOptions(
+          series = list(
+            marker = list(enabled = TRUE),
+            dataLabels = list(enabled = TRUE, format = '{point.y:,.0f}')
+          )
+        ) |>
+        highcharter::hc_add_series(
+          data = LU_change,
+          type = "line",
+          hcaes(x = year, y = acres, group = crop_name_grp),
+          tooltip = list(
+            pointFormat = "<b>{series.name}</b>: {point.y:,.0f} acres"
+          ),
+          showInLegend = TRUE
+        ) %>% 
+        highcharter::hc_exporting(
+          enabled = TRUE, 
+          allowHTML = TRUE  
+        )
+      
+    })
+    
+    output$usda_map <- leaflet::renderLeaflet({
+          
+          leaflet::leaflet()  %>%
+            # Define left and right map panes
+            leaflet::addMapPane("right", zIndex = 410) %>%
+            leaflet::addMapPane("left",  zIndex = 420) %>%
+            
+            # Add basemaps to left and right for swipe alignment
+            leaflet::addTiles(group = "base", layerId = "baseid1", options = leaflet::pathOptions(pane = "right")) %>%
+            leaflet:: addTiles(group = "base", layerId = "baseid2", options = leaflet::pathOptions(pane = "left")) %>%
+            
+            # Add WMS layer for USDA 2024 to RIGHT pane
+            leaflet::addWMSTiles(
+              baseUrl = "https://geoserver.megaloptera-data.com/geoserver/Columbia/wms",
+              layers = "Columbia:usda_2024_colored2",
+              options = leaflet::WMSTileOptions(
+                format = "image/png",
+                transparent = TRUE,
+                version = "1.1.0",
+                pane = "right"
+              ),
+              layerId = "wms_2024"
+            ) %>%
+            
+            # Add WMS layer for USDA 2011 to LEFT pane
+            leaflet::addWMSTiles(
+              baseUrl = "https://geoserver.megaloptera-data.com/geoserver/Columbia/wms",
+              layers = "Columbia:usda_2011_colored2",
+              options = leaflet::WMSTileOptions(
+                format = "image/png",
+                transparent = TRUE,
+                version = "1.1.0",
+                pane = "left"
+              ),
+              layerId = "wms_2011"
+            ) %>%
+            
+            # Zoom to Columbia County
+            leaflet::fitBounds(
+              lng1 = -118.400, lat1 = 46.126,
+              lng2 = -117.750, lat2 = 46.475
+            )  %>%
+            
+            # Add side-by-side swipe control
+            leaflet.extras2::addSidebyside(
+              leftId = "wms_2011",
+              rightId = "wms_2024",
+              layerId = "swipe_control"
+            )%>%
+            leaflet::addControl(html = custom_legend, position = "topright")
+          
+        })
+
+
+      
     
   }
   
