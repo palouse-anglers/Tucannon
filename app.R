@@ -20,7 +20,7 @@ library(dplyr)
   )
   
   theme = bslib::bs_theme(
-    fg = "#654e18", primary = "#5E9300",
+    fg = "#654e18", primary = "#5E9300", info = "#2c3e50",
     success = "#2c3e50", font_scale = NULL, bg = "#fff"
   )
   
@@ -535,6 +535,48 @@ library(dplyr)
 
 
 
+                       ), 
+                       # NRCS ----
+                       bslib::nav_panel(title = "NRCS Practices",
+                                        shiny::fluidRow(
+                                          shiny::column(12,
+                                                        shinyWidgets::pickerInput(
+                                                          inputId = "land_use",
+                                                          label = "Select Land Use(s):",
+                                                          choices = sort(unique(nrcs_data$land_use)),
+                                                          selected = "Crop",
+                                                          multiple = TRUE,
+                                                          options = shinyWidgets::pickerOptions(
+                                                            actionsBox = TRUE,
+                                                            liveSearch = TRUE,
+                                                            selectedTextFormat = "count > 3",
+                                                            noneSelectedText = "No land use selected"
+                                                          ),
+                                                          width = "100%"
+                                                        )
+                                          )
+                                        ),
+                                        
+                                        shiny::br(),
+                                        
+                                        shiny::uiOutput("value_cards"),
+                                        
+                                        shiny::br(),
+                                        
+                                        shiny::fluidRow(
+                                          shiny::column(12,
+                                                        highcharter::highchartOutput("time_series", height = "400px")
+                                          )
+                                        ),
+                                        
+                                        shiny::br(),
+                                        
+                                        shiny::fluidRow(
+                                          shiny::column(12,
+                                                        DT::DTOutput("practice_table")
+                                          )
+                                        )
+             
                        ),
                        # Nav additions ----
                        bslib::nav_spacer(),
@@ -1876,6 +1918,161 @@ library(dplyr)
             leaflet::addControl(html = custom_legend, position = "topright")
           
         })
+    
+    
+    # NRCS ----
+    # Unit mapping
+    unit_map <- list(
+      acres = c("Ac"),
+      feet = c("Ft"),
+      number = c("No")
+    )
+    
+    unit_labels <- c(acres = "Area-Based Practices", feet = "Length-Based Practices", number = "Count-Based Practices")
+    unit_suffixes <- c(acres = " Acres", feet = " Feet", number = "")
+    unit_suffixes_plot <- c(acres = " Acres", feet = " Feet", number = " Count")
+    
+    # Track selected unit type
+    selected_unit <- shiny::reactiveVal("acres")
+    
+    # Compute totals per unit type
+    summary_by_unit <- shiny::reactive({
+      shiny::req(input$land_use)
+      
+      nrcs_data %>%
+        dplyr::filter(land_use %in% input$land_use) %>%
+        dplyr::mutate(unit_type = dplyr::case_when(
+          measurement_unit %in% unit_map$acres ~ "acres",
+          measurement_unit %in% unit_map$feet ~ "feet",
+          measurement_unit %in% unit_map$number ~ "number",
+          TRUE ~ NA_character_
+        )) %>%
+        dplyr::filter(!is.na(unit_type)) %>%
+        dplyr::group_by(unit_type) %>%
+        dplyr::summarise(total = round(sum(applied_amount, na.rm = TRUE)), .groups = "drop")
+    })
+    
+    # Value cards
+    output$value_cards <- shiny::renderUI({
+      su <- summary_by_unit()
+      
+      # Create individual value boxes that can be clicked
+      create_value_card <- function(unit_type, icon_name) {
+        val <- su %>% dplyr::filter(unit_type == !!unit_type) %>% dplyr::pull(total)
+        is_available <- length(val) > 0 && val > 0
+        
+        # # Determine if this card should be highlighted
+        is_selected <- selected_unit() == unit_type
+        
+        shiny::column(4,
+                      shiny::div(
+                        style = if (!is_available) "opacity: 0.5; cursor: not-allowed;" else "cursor: pointer;",
+                        onclick = if (is_available) paste0("Shiny.setInputValue('card_", unit_type, "', Math.random())") else "",
+                        bslib::value_box(
+                          title = unit_labels[[unit_type]],
+                          value = if (is_available) {
+                            paste0(format(val, big.mark = ","), unit_suffixes[[unit_type]])
+                          } else {
+                            "No data"
+                          },
+                          showcase = shiny::icon(icon_name),
+                          theme = if (is_selected) "primary" else if (is_available) "info" else "secondary",
+                          class = if (is_selected) "border-primary" else ""
+                        )
+                      )
+        )
+      }
+      
+      shiny::fluidRow(
+        create_value_card("acres", "square"),
+        create_value_card("feet", "ruler-horizontal"), 
+        create_value_card("number", "hashtag")
+      )
+    })
+    
+    # Observe card selection
+    shiny::observeEvent(input$card_acres, {
+      selected_unit("acres")
+    })
+    shiny::observeEvent(input$card_feet, {
+      selected_unit("feet")
+    })
+    shiny::observeEvent(input$card_number, {
+      selected_unit("number")
+    })
+    
+    # Time series chart
+    output$time_series <- highcharter::renderHighchart({
+      shiny::req(input$land_use, selected_unit())
+      unit <- selected_unit()
+      
+      df <- nrcs_data %>%
+        dplyr::filter(land_use %in% input$land_use) %>%
+        dplyr::mutate(unit_type = dplyr::case_when(
+          measurement_unit %in% unit_map$acres ~ "acres",
+          measurement_unit %in% unit_map$feet ~ "feet",
+          measurement_unit %in% unit_map$number ~ "number",
+          TRUE ~ NA_character_
+        )) %>%
+        dplyr::filter(unit_type == unit, !is.na(applied_year)) %>%
+        dplyr::group_by(applied_year, land_use) %>%
+        dplyr::summarise(total = round(sum(applied_amount, na.rm = TRUE)), .groups = "drop")
+      
+      if (nrow(df) == 0) {
+        return(
+          highcharter::highchart() %>%
+            highcharter::hc_title(text = paste("No data available for", unit_labels[[unit]])) %>%
+            highcharter::hc_subtitle(text = "Try selecting a different unit type or land use")
+        )
+      }
+      
+      highcharter::hchart(df, "line", highcharter::hcaes(x = applied_year, y = total, group = land_use)) %>%
+        highcharter::hc_title(text = paste("Practice Totals Over Time:", unit_labels[[unit]])) %>%
+        highcharter::hc_xAxis(title = list(text = "Year")) %>%
+        highcharter::hc_yAxis(title = list(text = paste("Total", unit_suffixes_plot[[unit]]))) %>%
+        highcharter::hc_tooltip(
+          shared = TRUE,
+          valueDecimals = 0,
+          valueSuffix = unit_suffixes[[unit]]
+        ) %>%
+        highcharter::hc_plotOptions(
+          line = list(
+            marker = list(enabled = TRUE, radius = 4),
+            lineWidth = 2
+          )
+        )
+    })
+    
+    # Table
+    output$practice_table <- DT::renderDT({
+      shiny::req(input$land_use, selected_unit())
+      unit <- selected_unit()
+      
+      df <- nrcs_data %>%
+        dplyr::mutate(unit_type = dplyr::case_when(
+          measurement_unit %in% unit_map$acres ~ "acres",
+          measurement_unit %in% unit_map$feet ~ "feet",
+          measurement_unit %in% unit_map$number ~ "number",
+          TRUE ~ NA_character_
+        )) %>%
+        dplyr::filter(unit_type == unit, land_use %in% input$land_use) %>%
+        dplyr::group_by(practice_name, land_use, measurement_unit) %>%
+        dplyr::summarise(total_amount = round(sum(applied_amount, na.rm = TRUE)), .groups = "drop") %>%
+        dplyr::arrange(desc(total_amount)) %>% 
+        dplyr::select(practice_name, land_use, total_amount, measurement_unit)
+      
+      DT::datatable(
+        df,
+        rownames = FALSE,
+        colnames = c("Practice Name", "Land Use", "Total Amount", "Unit"),
+        options = list(
+          pageLength = 15,
+          scrollX = TRUE,
+          dom = 'Bfrtip',
+          buttons = c('copy', 'csv', 'excel')
+        )
+      )
+    })
 
 
       

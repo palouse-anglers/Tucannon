@@ -646,6 +646,16 @@ by_summer_2 <- temp_params_2 %>%
     )
   ))))
 
+### NRCS ----
+
+nrcs_data <- read.csv("inst/NRCS/clean_nrcs_practices.csv") %>% 
+  dplyr::mutate(applied_amount = dplyr::case_when(measurement_unit == "SqFt" ~ applied_amount * 0.0000229568,
+                                                  TRUE ~ applied_amount),
+                measurement_unit = dplyr::case_when(measurement_unit == "SqFt" ~ "Ac",
+                                                    TRUE ~ measurement_unit),
+                applied_year = lubridate::year(applied_date)) %>%
+  dplyr::filter(!is.na(applied_amount), !is.na(measurement_unit)) %>% 
+  dplyr::mutate(land_use = factor(land_use))
 
 # Watersheds ----
 
@@ -663,6 +673,8 @@ usethis::use_data(app_inputs, text_boxes, custom_legend, ag_conservation_areas, 
                   wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
                   station_water, station_stage, params, param_ranges, 
                   station_water_2, station_stage_2,
-                  by_year, by_month, by_summer, private_ag_2019, private_ag_2019_adj, county,
+                  by_year, by_month, by_summer, 
+                  nrcs_data,
+                  private_ag_2019, private_ag_2019_adj, county,
                   params_2, param_ranges_2, temp_params_2, by_year_2, by_month_2, by_summer_2,
                   overwrite = TRUE, internal = TRUE)
