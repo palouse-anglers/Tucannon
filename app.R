@@ -1811,7 +1811,7 @@ library(dplyr)
         highcharter::hc_add_series(
           data = LU_change,
           type = "line",
-          hcaes(x = year, y = acres, group = crop_name_grp),
+          highcharter::hcaes(x = year, y = acres, group = crop_name_grp),
           tooltip = list(
             pointFormat = "<b>{series.name}</b>: {point.y:,.0f} acres"
           ),
