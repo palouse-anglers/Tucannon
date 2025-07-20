@@ -2112,6 +2112,34 @@
         "Built": "R 4.4.0; ; 2024-08-20 06:14:33 UTC; unix"
       }
     },
+    "leaflet.extras2": {
+      "Source": "CRAN",
+      "Repository": "https://p3m.dev/cran/latest",
+      "description": {
+        "Package": "leaflet.extras2",
+        "Type": "Package",
+        "Title": "Extra Functionality for 'leaflet' Package",
+        "Version": "1.3.1",
+        "Authors@R": "c(\n      person(\"Gatscha\", \"Sebastian\", email = \"sebastian_gatscha@gmx.at\", role = c(\"aut\", \"cre\")),\n      person(\"Ricardo Rodrigo\", \"Basa\", email = \"radbasa@gmail.com\", role = c(\"ctb\")),\n      person(c(\"Jeffrey\", \"O\"), \"Hanson\", email = \"jeffrey.hanson@uqconnect.edu.au\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-4716-6134\"))\n    )",
+        "Description": "Several 'leaflet' plugins are integrated, which are available as extension to the 'leaflet' package.",
+        "License": "GPL-3 | file LICENSE",
+        "Encoding": "UTF-8",
+        "LazyData": "true",
+        "Depends": "R (>= 3.5.0), leaflet (>= 2.0.0)",
+        "Imports": "htmltools, magrittr, utils",
+        "Suggests": "jsonlite, shiny, sf, yyjsonr, sp, testthat (>= 2.1.0),\nfontawesome, htmlwidgets, grDevices, xfun, covr, curl",
+        "URL": "https://trafficonese.github.io/leaflet.extras2/,\nhttps://github.com/trafficonese/leaflet.extras2",
+        "BugReports": "https://github.com/trafficonese/leaflet.extras2/issues",
+        "RoxygenNote": "7.3.2",
+        "NeedsCompilation": "no",
+        "Packaged": "2025-03-05 09:33:03 UTC; kona1",
+        "Author": "Gatscha Sebastian [aut, cre],\n  Ricardo Rodrigo Basa [ctb],\n  Jeffrey O Hanson [ctb] (<https://orcid.org/0000-0002-4716-6134>)",
+        "Maintainer": "Gatscha Sebastian <sebastian_gatscha@gmx.at>",
+        "Repository": "RSPM",
+        "Date/Publication": "2025-03-05 13:40:06 UTC",
+        "Built": "R 4.4.0; ; 2025-03-06 04:24:15 UTC; unix"
+      }
+    },
     "leaflet.providers": {
       "Source": "CRAN",
       "Repository": "https://p3m.dev/cran/latest",
@@ -4304,10 +4332,10 @@
       "checksum": "98a9381cc95e7eccf41026d86eaf0387"
     },
     "app.R": {
-      "checksum": "60f50e85c72f26724c01ffa05b742134"
+      "checksum": "5c813061aea64c4589302ad82278cb06"
     },
     "data-raw/app_input.R": {
-      "checksum": "247a93073a77035ec0cb9851afc1d2bf"
+      "checksum": "bcf2f7966e60f0951f65ef1181750c79"
     },
     "data-raw/bolles.R": {
       "checksum": "80f857c3379f4ee42643012e3f2583ab"
@@ -4319,7 +4347,7 @@
       "checksum": "b0ee98773e8ff4fc62a6e968ddabf596"
     },
     "DESCRIPTION": {
-      "checksum": "201534555cfbec4fd013d5c472f00b13"
+      "checksum": "96015a9c5bc6a0bff47ca54c2d7006fe"
     },
     "inst/app/www/favicon.ico": {
       "checksum": "e979e7eb36ef7a9d8517d7c66a21be66"
@@ -4456,6 +4484,12 @@
     "inst/cc_huc12/columbia_aquifer_huc12.csv": {
       "checksum": "a7334c48dffeabaf4f857ec835cd5a2c"
     },
+    "inst/cc_huc12/columbia_bmps_huc12.csv": {
+      "checksum": "f5d4a17217dc7a247c6b3409e89054cd"
+    },
+    "inst/cc_huc12/columbia_change_detect_2011_2017.csv": {
+      "checksum": "050786ffbf7bec94a3af55c3f9cc4daf"
+    },
     "inst/cc_huc12/columbia_county_huc12.dbf": {
       "checksum": "7fa6f5fd89596f4beb6691e460eb9158"
     },
@@ -4479,6 +4513,9 @@
     },
     "inst/cc_huc12/columbia_geologic_hazard_huc12.csv": {
       "checksum": "65adc3afa9df14d86ff41f909f09c1cf"
+    },
+    "inst/cc_huc12/columbia_srp_huc12.csv": {
+      "checksum": "f2cc0eee7d3224e549e39c4a3456168c"
     },
     "inst/cc_huc12/columbia_usda_2011_huc12.csv": {
       "checksum": "33f7de8cfac443a14ba8a8c1be6e085b"
@@ -4811,7 +4848,7 @@
       "checksum": "98ae2544640e606ae553f4896183c059"
     },
     "inst/reports/lc-typst-template.typ": {
-      "checksum": "f95159487b0d3d27a0cd7b9a5092337d"
+      "checksum": "fb0f9700bcfa7273bdbe4693400fcc8b"
     },
     "inst/shapefiles/columbia-wetlands.cpg": {
       "checksum": "ae3b3df9970b49b6523e608759bc957d"
@@ -4852,6 +4889,9 @@
     "inst/touchet_eim_raw/EIMTimeSeriesResults_2025Jun05_28496.csv": {
       "checksum": "981fd7f828595af8bfed2327307683d5"
     },
+    "inst/usda/2011-2024_land_use_comp_legend.html": {
+      "checksum": "cccd5f32e5fe217e70ff886633bd8199"
+    },
     "inst/usda/USDA_cdl_huc12_2011.csv": {
       "checksum": "35dd3a77f106fab6f6b43586752900af"
     },
@@ -4886,13 +4926,13 @@
       "checksum": "f619ca5f232ad9e4efacf8e860483983"
     },
     "R/sysdata.rda": {
-      "checksum": "367a78bc7d9fad2f14b444c9106a61e3"
+      "checksum": "8ac249425073613882381e750d7cc6ac"
     },
     "R/utils-pipe.R": {
       "checksum": "b56ff2b193ecba52f9ec7f3b10cca008"
     },
     "R/watershed_mod.R": {
-      "checksum": "fe9d28ef77d5f82dbdba77b870e6f693"
+      "checksum": "4cdbdefc4fa9a873116901018f33de43"
     },
     "R/zzz.R": {
       "checksum": "ffc441cbb8457c6736f49a4ca2663322"
