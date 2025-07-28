@@ -383,18 +383,18 @@ library(dplyr)
                                                                              bslib::card(
                                                                                shiny::uiOutput("acres_box"),
                                                                                bslib::card_header(
-                                                                                 shinyWidgets::checkboxGroupButtons(size = "xs",
-                                                                                                      inputId = "bmps_active",
-                                                                                                      selected = "Yes",
-                                                                                                      label = "Active BMPs",
-                                                                                                      choices = c("Yes", "No"),
-                                                                                                      checkIcon = list(
-                                                                                                        yes = shiny::tags$i(class = "fa fa-check-square",
-                                                                                                                     style = "color: #84563C"),
-                                                                                                        no = shiny::tags$i(class = "fa fa-square-o",
-                                                                                                                    style = "color: #84563C")
-                                                                                                      )
-                                                                                 )
+                                                                                 # shinyWidgets::checkboxGroupButtons(size = "xs",
+                                                                                 #                      inputId = "bmps_active",
+                                                                                 #                      selected = "Yes",
+                                                                                 #                      label = "Active BMPs",
+                                                                                 #                      choices = c("Yes", "No"),
+                                                                                 #                      checkIcon = list(
+                                                                                 #                        yes = shiny::tags$i(class = "fa fa-check-square",
+                                                                                 #                                     style = "color: #84563C"),
+                                                                                 #                        no = shiny::tags$i(class = "fa fa-square-o",
+                                                                                 #                                    style = "color: #84563C")
+                                                                                 #                      )
+                                                                                 # )
                                                                                ),
                                                                                bslib::card_body(min_height = '100px',
                                                                                          shiny::uiOutput("bmps_box",
@@ -1364,9 +1364,9 @@ library(dplyr)
       # reactive BMPs
       rve_bmps <- shiny::reactive({
         
-        bmps %>%
-          dplyr::filter(HUC12 %in% filtered_huc()$HUC12) %>%
-          dplyr::filter(Active %in% input$bmps_active)
+        bmps2 %>%
+          dplyr::filter(HUC12 %in% filtered_huc()$HUC12)# %>%
+          # dplyr::filter(Active %in% input$bmps_active)
         
       })
       
@@ -1377,9 +1377,9 @@ library(dplyr)
         
         
         total_bmps <- rve_bmps() %>%
-          sf::st_drop_geometry() %>%
+          # sf::st_drop_geometry() %>%
           dplyr::group_by(HUC12) %>%
-          dplyr::tally() %>%
+          dplyr::summarise(n = sum(count)) %>%
           dplyr::ungroup()
         
         
