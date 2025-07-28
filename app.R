@@ -1040,9 +1040,10 @@ library(dplyr)
                       extensions = 'Buttons',
                       filter = 'top',
                       options = list(
-                        lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
-                        dom = 'lfrtipB',
-                        buttons = c('copy', 'csv', 'excel')
+                        lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+                        pageLength = -1,
+                        dom = 'Blfrtip',
+                        buttons = c("copy", "csv", "excel", "pdf", "print")
                       )
         ) 
         
@@ -1444,9 +1445,10 @@ library(dplyr)
         extensions = 'Buttons',
         filter = 'top',
         options = list(
-          lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
-          dom = 'lfrtipB',
-          buttons = c('copy', 'csv', 'excel')
+          lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+          pageLength = -1,
+          dom = 'Blfrtip',
+          buttons = c("copy", "csv", "excel", "pdf", "print")
         )
       ) 
       
@@ -1468,9 +1470,10 @@ library(dplyr)
         extensions = 'Buttons',
         filter = 'top',
         options = list(
-          lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
-          dom = 'lfrtipB',
-          buttons = c('copy', 'csv', 'excel')
+          lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+          pageLength = -1,
+          dom = 'Blfrtip',
+          buttons = c("copy", "csv", "excel", "pdf", "print")
         )
       ) 
       
@@ -1585,9 +1588,10 @@ library(dplyr)
                              extensions = 'Buttons',
                              filter = 'top',
                              options = list(
-                               lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
-                               dom = 'lfrtipB',
-                               buttons = c('copy', 'csv', 'excel')
+                               lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+                               pageLength = -1,
+                               dom = 'Blfrtip',
+                               buttons = c("copy", "csv", "excel", "pdf", "print")
                              )) 
       
       bslib::layout_column_wrap(
@@ -1800,9 +1804,10 @@ library(dplyr)
                              extensions = 'Buttons',
                              filter = 'top',
                              options = list(
-                               lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100","All")),
-                               dom = 'lfrtipB',
-                               buttons = c('copy', 'csv', 'excel')
+                               lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+                               pageLength = -1,
+                               dom = 'Blfrtip',
+                               buttons = c("copy", "csv", "excel", "pdf", "print")
                              )) 
       
       bslib::layout_column_wrap(
@@ -2066,10 +2071,10 @@ library(dplyr)
         rownames = FALSE,
         colnames = c("Practice Name", "Land Use", "Total Amount", "Unit"),
         options = list(
-          pageLength = 15,
-          scrollX = TRUE,
-          dom = 'Bfrtip',
-          buttons = c('copy', 'csv', 'excel')
+          lengthMenu=list(c(25,50,100,-1),c("25","50","100","All")),
+          pageLength = -1,
+          dom = 'Blfrtip',
+          buttons = c("copy", "csv", "excel", "pdf", "print")
         )
       )
     })
