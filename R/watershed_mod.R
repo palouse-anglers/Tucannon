@@ -35,9 +35,11 @@ mod_watershedServer <- function(id, selected_choices, filtered_huc, rve_bmps) {
       if ("BMPs" %in% choice_list) {
         bmp_data <- rve_bmps()
         bmp_table <- bmp_data %>%
-          sf::st_drop_geometry() %>%
+          # sf::st_drop_geometry() %>%
           dplyr::group_by(Project) %>%
-          dplyr::tally()
+          # dplyr::tally()
+          dplyr::summarise(n = sum(count)) %>%
+          dplyr::ungroup()
         
         footer_btn <- if (nrow(bmp_data) > 1) {
           shiny::actionButton(ns("show_bmp_plot"), "Show BMP Plot")
@@ -156,7 +158,9 @@ mod_watershedServer <- function(id, selected_choices, filtered_huc, rve_bmps) {
         rve_bmps() %>%
           sf::st_drop_geometry() %>%
           dplyr::group_by(Name, Project) %>%
-          dplyr::tally(),
+          # dplyr::tally()
+          dplyr::summarise(n = sum(count)) %>%
+          dplyr::ungroup(),
         "column",
         highcharter::hcaes(x = Name, y = n, group = Project),
         stacking = "normal"

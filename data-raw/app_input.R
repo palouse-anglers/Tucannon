@@ -444,7 +444,14 @@ bmps_byyear <- bmps %>%
   dplyr::arrange(Year) %>%
   dplyr::mutate(Cume_BMPs=cumsum(No_BMPS))
 
+huc_name_pair <- bmps %>% distinct(HUC12, Name)
 
+bmps2 <- data.table::fread("inst/cc_huc12/columbia_points_bmps_huc12.csv") %>% 
+  dplyr::rename(HUC12 = huc12, Project = project) %>% 
+  dplyr::mutate(HUC12 = as.character(HUC12),
+                Project = if_else(Project == "", "Missing", Project)) %>% 
+  dplyr::left_join(huc_name_pair, by = "HUC12") %>% 
+  tidyr::replace_na(list(Name = "Missing"))
 
 ## Stations data ----
 ### Marengo ----
@@ -670,7 +677,7 @@ usethis::use_data(app_inputs, text_boxes, custom_legend, ag_conservation_areas, 
                   ag_conservation_areas_usda, ag_geo_haz_usda, ag_crit_aquifer_usda, ag_frqflood_usda, ag_wetlands_usda,
                   huc_sum,
                   huc, stations, huc_combo, 
-                  wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, 
+                  wetlands, geo_hazard, freq_flood, bmps, bmps_byyear, bmps2, 
                   station_water, station_stage, params, param_ranges, 
                   station_water_2, station_stage_2,
                   by_year, by_month, by_summer, 
